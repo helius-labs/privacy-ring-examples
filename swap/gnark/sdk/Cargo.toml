@@ -23,7 +23,6 @@ spr-user-registry-interface = { version = "0.10.0", features = ["pda"] }
 
 [dev-dependencies]
 spr-program = { version = "0.10.0", features = ["compression"] }
-spr-test-utils = { git = "https://github.com/helius-labs/zolana", tag = "spr-client-v0.10.0" }
 solana-account = "4.3"
 groth16-solana = "0.3.1"
 solana-keypair = "3.1.2"
