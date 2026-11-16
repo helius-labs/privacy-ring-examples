@@ -47,20 +47,3 @@ path = "examples/read_history.rs"
 [[example]]
 name = "deposit_with_interface_setup"
 path = "examples/deposit_with_interface_setup.rs"
-
-# Route the unpublished release-tag test helpers through the published SDK.
-[patch."https://github.com/helius-labs/zolana"]
-spr-client = { version = "=0.10.0" }
-spr-event = { version = "=0.10.0" }
-spr-event-parser = { version = "=0.10.0" }
-spr-hasher = { version = "=0.8.0" }
-spr-interface = { version = "=0.10.0" }
-spr-keypair = { version = "=0.10.0" }
-spr-merkle-tree = { version = "=0.10.0" }
-spr-program = { version = "=0.10.0" }
-spr-program-test = { version = "=0.10.0" }
-spr-protocol-instructions = { version = "=0.10.0" }
-spr-smart-account-client = { version = "=0.10.0" }
-spr-transaction = { version = "=0.10.0" }
-spr-tree = { version = "=0.10.0" }
-spr-user-registry-interface = { version = "=0.10.0" }
