@@ -4,11 +4,9 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use solana_instruction::Instruction;
 use solana_keypair::Keypair;
-use solana_signature::Signature;
 use solana_signer::Signer;
-use spr_client::{ComputeBudgetConfig, HistoryFilters, Rpc};
+use spr_client::{HistoryFilters, Rpc};
 use spr_keypair::{ShieldedAddress, ShieldedKeypair};
 use spr_program_test::{
     fixture,
@@ -22,10 +20,7 @@ use timelock_escrow_sdk::escrow_authority;
 mod wallet;
 
 use wallet::deposit;
-pub use wallet::TestWallet;
-
-// The whole per-transaction budget: the escrow forwards an SPP transact.
-const TRANSACT_COMPUTE_UNIT_LIMIT: u32 = 1_400_000;
+pub use wallet::{send, TestWallet};
 
 pub const SHIELD_AMOUNT: u64 = 500_000_000;
 pub const LOCK_AMOUNT: u64 = 300_000_000;
@@ -170,23 +165,4 @@ pub fn creator_transactions(
         .into_iter()
         .flat_map(|item| item.events)
         .collect())
-}
-
-// Submit a single (large) instruction as a transaction **v1** message: its
-// 4096-byte limit is what holds the escrow/withdraw account lists forwarding
-// the SPP transact's tree accounts, which no longer fit a 1232-byte legacy
-// packet. v1 has no address lookup table, and it carries the compute ceilings
-// in the message header rather than in a compute-budget instruction. The first
-// signer pays.
-pub fn send(rpc: &impl Rpc, signers: &[&dyn Signer], ix: Instruction) -> Result<Signature> {
-    let payer = signers
-        .first()
-        .ok_or_else(|| anyhow!("a transaction needs a fee payer"))?
-        .pubkey();
-    Ok(rpc.create_and_send_transaction(
-        std::slice::from_ref(&ix),
-        payer,
-        signers,
-        ComputeBudgetConfig::new(TRANSACT_COMPUTE_UNIT_LIMIT),
-    )?)
 }

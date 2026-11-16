@@ -114,7 +114,7 @@ jobs:
           for manifest in open(sys.argv[1]).read().split():
               text = open(manifest).read()
               text, git_pins = re.subn(
-                  r'(git\s*=\s*"https://github\.com/helius-labs/zolana(?:\.git)?"\s*,\s*)(?:rev|tag)\s*=\s*"[^"]+"',
+                  r'(git\s*=\s*"https://github\.com/helius-labs/zolana(?:\.git)?"\s*,\s*)rev\s*=\s*"[^"]+"',
                   rf'\1rev = "{sha}"',
                   text,
               )

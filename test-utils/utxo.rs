@@ -61,32 +61,17 @@ pub fn test_transaction(
     let blinding_seed =
         prepare_output_blindings(&input_utxos, &mut output_utxos).expect("output blindings");
     let tx = get_transaction_viewing_key(sender, &input_utxos).expect("transaction viewing key");
-    let encrypted =
+    let external_data =
         encrypt_transaction_data(&output_utxos, &tx, output_tree_id).expect("encrypted outputs");
     SppProofInputs {
         input_utxos,
         output_utxos,
         blinding_seed,
         output_tree_id,
-        external_data: ExternalData::new(
-            *tx.pubkey().as_bytes(),
-            encrypted.salt,
-            encrypted.outputs,
-            encrypted.resolved_owner_tags,
-            vec![],
-        ),
+        external_data,
         payer: Address::default(),
         cache_accounts: Default::default(),
     }
-}
-
-/// The outputs of a transaction encrypted to their owners, with what
-/// [`ExternalData::new`] takes besides the transaction viewing key.
-pub struct EncryptedTransactionData {
-    pub salt: [u8; 16],
-    pub output_utxos: Vec<SppProofOutputUtxo>,
-    pub outputs: Vec<TransactOutput>,
-    pub resolved_owner_tags: Vec<[u8; 32]>,
 }
 
 /// Set each output's blinding from the first nullifier and the output
@@ -131,13 +116,14 @@ fn first_nullifier(input_utxos: &[SppProofInputUtxo]) -> Result<[u8; 32]> {
         .nullifier)
 }
 
-/// Encrypt every output to its own owner under a random salt, and publish its
-/// commitment under `output_tree_id`.
+/// The external data of a transaction that publishes `outputs` under
+/// `output_tree_id`, each encrypted to its own owner under a random salt, with
+/// no messages and no expiry.
 pub fn encrypt_transaction_data(
     outputs: &[SppProofOutputUtxo],
     transaction_viewing_key: &ViewingKey,
     output_tree_id: u16,
-) -> Result<EncryptedTransactionData> {
+) -> Result<ExternalData> {
     let salt = random_salt();
     let mut transact_outputs = Vec::with_capacity(outputs.len());
     let mut resolved_owner_tags = Vec::with_capacity(outputs.len());
@@ -168,10 +154,11 @@ pub fn encrypt_transaction_data(
         });
         resolved_owner_tags.push(message.view_tag);
     }
-    Ok(EncryptedTransactionData {
+    Ok(ExternalData::new(
+        *transaction_viewing_key.pubkey().as_bytes(),
         salt,
-        output_utxos: outputs.to_vec(),
-        outputs: transact_outputs,
+        transact_outputs,
         resolved_owner_tags,
-    })
+        vec![],
+    ))
 }

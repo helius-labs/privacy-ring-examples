@@ -63,10 +63,10 @@ use spr_interface::{
     },
     SHIELDED_POOL_PROGRAM_ID,
 };
-use spr_keypair::{random_blinding, ShieldedKeypair, SigningKey};
+use spr_keypair::{random_blinding, ShieldedKeypair};
 use spr_merkle_tree::{indexed::IndexedMerkleTree, MerkleTree};
 use spr_transaction::{
-    instructions::transact::{ExternalData, SppProofInputs, SppProofOutputUtxo},
+    instructions::transact::{SppProofInputs, SppProofOutputUtxo},
     Data, Utxo, SOL_ASSET_ID, SOL_MINT,
 };
 use spr_tree::TreeAccount;
@@ -259,11 +259,7 @@ fn assemble_accounts(
 }
 
 fn keypair_from_payer(payer: &Keypair) -> ShieldedKeypair {
-    let seed: [u8; 32] = payer.to_bytes()[..32]
-        .try_into()
-        .expect("ed25519 seed is the first 32 bytes");
-    ShieldedKeypair::from_keypair(SigningKey::from_ed25519_bytes(&seed))
-        .expect("keypair from payer")
+    ShieldedKeypair::from_keypair(payer).expect("keypair from payer")
 }
 
 fn prove_transact_timed(
@@ -523,23 +519,14 @@ fn bench_make(
     let transaction_viewing_key =
         get_transaction_viewing_key(&maker, &input_utxos).expect("make transaction viewing key");
 
-    let encoded = encrypt_transaction_data(
-        &[change.clone(), order_output_utxo],
-        &transaction_viewing_key,
-        BENCH_TREE_ID,
-    )
-    .expect("encode make slots");
-
-    let external_data = ExternalData::new(
-        *transaction_viewing_key.pubkey().as_bytes(),
-        encoded.salt,
-        encoded.outputs,
-        encoded.resolved_owner_tags,
-        vec![marker_message],
-    );
+    let output_utxos = vec![change.clone(), order_output_utxo];
+    let mut external_data =
+        encrypt_transaction_data(&output_utxos, &transaction_viewing_key, BENCH_TREE_ID)
+            .expect("encode make slots");
+    external_data.messages = vec![marker_message];
     let spp_proof_inputs = SppProofInputs {
         input_utxos,
-        output_utxos: encoded.output_utxos,
+        output_utxos,
         external_data,
         payer: payer_address,
         blinding_seed,
@@ -685,24 +672,14 @@ fn bench_take(
     let transaction_viewing_key =
         get_transaction_viewing_key(&taker, &input_utxos).expect("take transaction viewing key");
 
-    let encoded = encrypt_transaction_data(
-        &[source_output.clone(), destination_output.clone()],
-        &transaction_viewing_key,
-        BENCH_TREE_ID,
-    )
-    .expect("encode take slots");
-
-    let mut external_data = ExternalData::new(
-        *transaction_viewing_key.pubkey().as_bytes(),
-        encoded.salt,
-        encoded.outputs,
-        encoded.resolved_owner_tags,
-        vec![],
-    );
+    let output_utxos = vec![source_output.clone(), destination_output.clone()];
+    let mut external_data =
+        encrypt_transaction_data(&output_utxos, &transaction_viewing_key, BENCH_TREE_ID)
+            .expect("encode take slots");
     external_data.expiry_unix_ts = order_utxo.terms.expiry;
     let spp_proof_inputs = SppProofInputs {
         input_utxos,
-        output_utxos: encoded.output_utxos,
+        output_utxos,
         external_data,
         payer: payer_address,
         blinding_seed,
@@ -850,24 +827,16 @@ fn bench_cancel(
     let transaction_viewing_key =
         get_transaction_viewing_key(&maker, &input_utxos).expect("cancel transaction viewing key");
 
-    let encoded = encrypt_transaction_data(
+    let mut external_data = encrypt_transaction_data(
         std::slice::from_ref(&source_output),
         &transaction_viewing_key,
         BENCH_TREE_ID,
     )
     .expect("encode cancel slots");
-
-    let mut external_data = ExternalData::new(
-        *transaction_viewing_key.pubkey().as_bytes(),
-        encoded.salt,
-        encoded.outputs,
-        encoded.resolved_owner_tags,
-        vec![],
-    );
     external_data.expiry_unix_ts = SPP_RELAYER_DEADLINE;
     let spp_proof_inputs = SppProofInputs {
         input_utxos,
-        output_utxos: [encoded.output_utxos, vec![compact_output]].concat(),
+        output_utxos: vec![source_output.clone(), compact_output],
         external_data,
         payer: payer_address,
         blinding_seed,

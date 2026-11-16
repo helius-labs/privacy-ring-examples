@@ -78,11 +78,11 @@ use spr_interface::{
     },
     SHIELDED_POOL_PROGRAM_ID,
 };
-use spr_keypair::{random_blinding, ShieldedKeypair, SigningKey};
+use spr_keypair::{random_blinding, ShieldedKeypair};
 use spr_merkle_tree::{indexed::IndexedMerkleTree, MerkleTree};
 use spr_transaction::utxo::SppProofInputUtxo;
 use spr_transaction::{
-    instructions::transact::{ExternalData, SppProofInputs, SppProofOutputUtxo},
+    instructions::transact::{SppProofInputs, SppProofOutputUtxo},
     Data, Utxo,
 };
 use spr_tree::TreeAccount;
@@ -275,11 +275,7 @@ fn assemble_accounts(
 }
 
 fn keypair_from_payer(payer: &Keypair) -> ShieldedKeypair {
-    let seed: [u8; 32] = payer.to_bytes()[..32]
-        .try_into()
-        .expect("ed25519 seed is the first 32 bytes");
-    ShieldedKeypair::from_keypair(SigningKey::from_ed25519_bytes(&seed))
-        .expect("keypair from payer")
+    ShieldedKeypair::from_keypair(payer).expect("keypair from payer")
 }
 
 /// Prove the transaction against fixture trees: one warm-up proof, then the
@@ -523,23 +519,13 @@ fn bench_escrow(bench: &mut Bench) {
 
     let transaction_viewing_key = get_transaction_viewing_key(&creator, &input_utxos)
         .expect("escrow transaction viewing key");
-    let encoded = encrypt_transaction_data(
-        &[change.clone(), escrow_output_utxo],
-        &transaction_viewing_key,
-        BENCH_TREE_ID,
-    )
-    .expect("encode escrow slots");
-
-    let external_data = ExternalData::new(
-        *transaction_viewing_key.pubkey().as_bytes(),
-        encoded.salt,
-        encoded.outputs,
-        encoded.resolved_owner_tags,
-        vec![],
-    );
+    let output_utxos = vec![change.clone(), escrow_output_utxo];
+    let external_data =
+        encrypt_transaction_data(&output_utxos, &transaction_viewing_key, BENCH_TREE_ID)
+            .expect("encode escrow slots");
     let spp_proof_inputs = SppProofInputs {
         input_utxos,
-        output_utxos: encoded.output_utxos,
+        output_utxos,
         external_data,
         payer: payer_address,
         blinding_seed,
@@ -653,24 +639,16 @@ fn bench_withdraw(bench: &mut Bench) {
     let payer_address = Address::new_from_array(payer.pubkey().to_bytes());
     let transaction_viewing_key = get_transaction_viewing_key(&creator, &input_utxos)
         .expect("withdraw transaction viewing key");
-    let encoded = encrypt_transaction_data(
+    let mut external_data = encrypt_transaction_data(
         std::slice::from_ref(&source_output),
         &transaction_viewing_key,
         BENCH_TREE_ID,
     )
     .expect("encode withdraw slots");
-
-    let mut external_data = ExternalData::new(
-        *transaction_viewing_key.pubkey().as_bytes(),
-        encoded.salt,
-        encoded.outputs,
-        encoded.resolved_owner_tags,
-        vec![],
-    );
     external_data.expiry_unix_ts = SPP_RELAYER_DEADLINE;
     let spp_proof_inputs = SppProofInputs {
         input_utxos,
-        output_utxos: [encoded.output_utxos, vec![compact_output]].concat(),
+        output_utxos: vec![source_output.clone(), compact_output],
         external_data,
         payer: payer_address,
         blinding_seed,

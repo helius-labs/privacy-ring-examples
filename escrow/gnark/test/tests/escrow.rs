@@ -15,7 +15,7 @@ use solana_pubkey::Pubkey;
 use spr_client::Rpc;
 use spr_keypair::random_blinding;
 use spr_transaction::{
-    instructions::transact::{ExternalData, SppProofInputs, SppProofOutputUtxo},
+    instructions::transact::{SppProofInputs, SppProofOutputUtxo},
     Data, Utxo, SOL_ASSET_ID, SOL_MINT,
 };
 use timelock_escrow_sdk::{
@@ -90,23 +90,13 @@ fn escrow_then_withdraw() -> Result<()> {
 
     let transaction_viewing_key = get_transaction_viewing_key(&creator.keypair, &input_utxos)
         .map_err(|e| anyhow!("escrow transaction viewing key: {e:?}"))?;
-    let encoded = encrypt_transaction_data(
-        &[change.clone(), escrow_output_utxo],
-        &transaction_viewing_key,
-        localnet.tree_id,
-    )
-    .map_err(|e| anyhow!("encode escrow slots: {e:?}"))?;
-
-    let external_data = ExternalData::new(
-        *transaction_viewing_key.pubkey().as_bytes(),
-        encoded.salt,
-        encoded.outputs,
-        encoded.resolved_owner_tags,
-        vec![],
-    );
+    let output_utxos = vec![change.clone(), escrow_output_utxo];
+    let external_data =
+        encrypt_transaction_data(&output_utxos, &transaction_viewing_key, localnet.tree_id)
+            .map_err(|e| anyhow!("encode escrow slots: {e:?}"))?;
     let spp_proof_inputs = SppProofInputs {
         input_utxos,
-        output_utxos: encoded.output_utxos,
+        output_utxos,
         external_data,
         payer: creator_address.solana_address()?,
         blinding_seed,
@@ -140,7 +130,7 @@ fn escrow_then_withdraw() -> Result<()> {
     }
     .instruction()?;
 
-    let signature = send(localnet.client.rpc(), &creator.keypair, escrow_ix)?;
+    let signature = send(localnet.client.rpc(), &[&creator.keypair], escrow_ix)?;
     localnet
         .client
         .confirm_private_transaction_sync(signature)
@@ -216,24 +206,16 @@ fn escrow_then_withdraw() -> Result<()> {
 
     let transaction_viewing_key = get_transaction_viewing_key(&creator.keypair, &input_utxos)
         .map_err(|e| anyhow!("withdraw transaction viewing key: {e:?}"))?;
-    let encoded = encrypt_transaction_data(
+    let mut external_data = encrypt_transaction_data(
         std::slice::from_ref(&source_output),
         &transaction_viewing_key,
         localnet.tree_id,
     )
     .map_err(|e| anyhow!("encode withdraw slots: {e:?}"))?;
-
-    let mut external_data = ExternalData::new(
-        *transaction_viewing_key.pubkey().as_bytes(),
-        encoded.salt,
-        encoded.outputs,
-        encoded.resolved_owner_tags,
-        vec![],
-    );
     external_data.expiry_unix_ts = SPP_RELAYER_DEADLINE;
     let withdraw_spp_proof_inputs = SppProofInputs {
         input_utxos,
-        output_utxos: [encoded.output_utxos, vec![compact_output]].concat(),
+        output_utxos: vec![source_output.clone(), compact_output],
         external_data,
         payer: creator_address.solana_address()?,
         blinding_seed,
@@ -278,14 +260,14 @@ fn escrow_then_withdraw() -> Result<()> {
     // proof (bound to the owner signers) fails to verify.
     let non_canonical_ix =
         with_non_canonical_authority_bump(withdraw_ix.clone(), &creator_address.solana_address()?)?;
-    let non_canonical_error = send(localnet.client.rpc(), &creator.keypair, non_canonical_ix)
+    let non_canonical_error = send(localnet.client.rpc(), &[&creator.keypair], non_canonical_ix)
         .expect_err("a withdraw with a non-canonical authority bump must be rejected");
     assert!(
         format!("{non_canonical_error:?}").contains("TransactProofVerificationFailed"),
         "SPP must reject the non-canonical PDA as the escrow owner: {non_canonical_error:?}"
     );
 
-    let signature = send(localnet.client.rpc(), &creator.keypair, withdraw_ix)?;
+    let signature = send(localnet.client.rpc(), &[&creator.keypair], withdraw_ix)?;
     localnet
         .client
         .confirm_private_transaction_sync(signature)

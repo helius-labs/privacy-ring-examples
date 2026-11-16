@@ -98,7 +98,7 @@ fn make_and_take_swap_inline() -> Result<()> {
     .build(&maker.keypair)?
     .prove(client.indexer(), localnet.tree, &maker.keypair)?
     .instruction()?;
-    let make_signature = send(client.rpc(), &maker.keypair, make_ix)?;
+    let make_signature = send(client.rpc(), &[&maker.keypair], make_ix)?;
     client
         .confirm_private_transaction_sync(make_signature)
         .map_err(|e| anyhow!("confirm make indexed: {e:?}"))?;
@@ -158,7 +158,7 @@ fn make_and_take_swap_inline() -> Result<()> {
     .instruction()?;
     // SPP checks the transact proof against its owner signers, the other
     // maker's order authority instead of the order UTXO's owner.
-    let error = send(client.rpc(), &taker.keypair, wrong_maker_ix)
+    let error = send(client.rpc(), &[&taker.keypair], wrong_maker_ix)
         .expect_err("a take naming another maker must fail");
     let spp_error = ShieldedPoolError::TransactProofVerificationFailed as u32;
     assert!(
@@ -175,7 +175,7 @@ fn make_and_take_swap_inline() -> Result<()> {
         .ok_or_else(|| anyhow!("take data has no authority bump"))?;
     assert_eq!(*bump, order_authority_bump(&maker_pubkey));
     *bump = non_canonical_bump(&maker_pubkey)?;
-    let error = send(client.rpc(), &taker.keypair, wrong_bump_ix)
+    let error = send(client.rpc(), &[&taker.keypair], wrong_bump_ix)
         .expect_err("a take with a non-canonical authority bump must fail");
     let missing_authority = SwapError::MissingOrderAuthority as u32;
     assert!(
@@ -183,7 +183,7 @@ fn make_and_take_swap_inline() -> Result<()> {
         "expected MissingOrderAuthority: {error:#}"
     );
     let take_ix = take.instruction()?;
-    let take_signature = send(client.rpc(), &taker.keypair, take_ix)?;
+    let take_signature = send(client.rpc(), &[&taker.keypair], take_ix)?;
     client
         .confirm_private_transaction_sync(take_signature)
         .map_err(|e| anyhow!("confirm take indexed: {e:?}"))?;

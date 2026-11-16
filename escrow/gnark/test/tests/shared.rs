@@ -1,9 +1,5 @@
 use anyhow::{anyhow, Result};
-use solana_instruction::Instruction;
-use solana_signature::Signature;
-use solana_signer::Signer;
-use spr_client::{ComputeBudgetConfig, Rpc, SolanaRpc};
-use spr_keypair::{ShieldedKeypair, SigningKey};
+use spr_keypair::ShieldedKeypair;
 use spr_program_test::{
     fixture,
     localnet::{FixtureLocalnet, LocalnetPorts},
@@ -17,10 +13,7 @@ mod release_localnet;
 mod wallet;
 
 use wallet::deposit;
-pub use wallet::{wait_for_merkle_proof, TestWallet};
-
-// The whole per-transaction budget: the escrow forwards an SPP transact.
-const TRANSACT_COMPUTE_UNIT_LIMIT: u32 = 1_400_000;
+pub use wallet::{send, wait_for_merkle_proof, TestWallet};
 
 pub const SHIELD_AMOUNT: u64 = 500_000_000;
 pub const LOCK_AMOUNT: u64 = 300_000_000;
@@ -67,12 +60,7 @@ pub fn setup(test: u16) -> Result<TestEnv> {
     // SPL registration needed.
     let assets = AssetRegistry::default();
 
-    let creator_solana_keypair = fixture::actor(0);
-    let creator_seed: [u8; 32] = creator_solana_keypair.to_bytes()[..32]
-        .try_into()
-        .expect("ed25519 seed is the first 32 bytes");
-    let creator_shielded_keypair =
-        ShieldedKeypair::from_keypair(SigningKey::from_ed25519_bytes(&creator_seed))?;
+    let creator_shielded_keypair = ShieldedKeypair::from_keypair(&fixture::actor(0))?;
 
     let creator_address = creator_shielded_keypair
         .shielded_address()
@@ -112,19 +100,4 @@ pub fn setup(test: u16) -> Result<TestEnv> {
         creator,
         creator_input,
     })
-}
-
-// Submit a single (large) instruction as a transaction **v1** message: its
-// 4096-byte limit is what holds the escrow/withdraw account lists forwarding
-// the SPP transact's tree accounts, which no longer fit a 1232-byte legacy
-// packet. v1 has no address lookup table, and it carries the compute ceilings
-// in the message header rather than in a compute-budget instruction. An unset
-// ceiling means zero, not a default, so both are written. `payer` signs and pays.
-pub fn send(rpc: &SolanaRpc, payer: &dyn Signer, ix: Instruction) -> Result<Signature> {
-    Ok(rpc.create_and_send_transaction(
-        std::slice::from_ref(&ix),
-        payer.pubkey(),
-        &[payer],
-        ComputeBudgetConfig::new(TRANSACT_COMPUTE_UNIT_LIMIT),
-    )?)
 }

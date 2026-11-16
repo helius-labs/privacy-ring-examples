@@ -66,7 +66,7 @@ use spr_interface::{
     },
     SHIELDED_POOL_PROGRAM_ID,
 };
-use spr_keypair::{NullifierKey, ShieldedKeypair, SigningKey};
+use spr_keypair::{NullifierKey, ShieldedKeypair};
 use spr_merkle_tree::{indexed::IndexedMerkleTree, MerkleTree};
 use spr_program::{proof::compressed_proof, CompressedProof, ProgramOwner, ProgramProofInputs};
 use spr_transaction::{instructions::transact::SppProofInputs, Data, Mint, Utxo, WalletUtxo};
@@ -654,11 +654,7 @@ fn fixed_keypair(seed: u8) -> Keypair {
 
 /// The shielded keypair of a Solana fee payer: one ed25519 identity.
 fn keypair_from_payer(payer: &Keypair) -> ShieldedKeypair {
-    let seed: [u8; 32] = payer.to_bytes()[..32]
-        .try_into()
-        .expect("ed25519 seed is the first 32 bytes");
-    ShieldedKeypair::from_keypair(SigningKey::from_ed25519_bytes(&seed))
-        .expect("keypair from payer")
+    ShieldedKeypair::from_keypair(payer).expect("keypair from payer")
 }
 
 /// The release shielded pool program: `SHIELDED_POOL_PROGRAM_PATH`, else

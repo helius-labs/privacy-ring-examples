@@ -84,8 +84,9 @@ groups = [manifest.get("workspace", {}).get("dependencies", {})]
 tables = [manifest, *manifest.get("target", {}).values()]
 for table in tables:
     groups.extend(table.get(kind, {}) for kind in ("dependencies", "dev-dependencies", "build-dependencies"))
-groups.extend(manifest.get("patch", {}).values())
 errors = []
+if "patch" in manifest:
+    errors.append(f"{path}: has a [patch] table; use the published SDK releases")
 for group in groups:
     for name, dependency in group.items():
         if not name.startswith("spr-"):
@@ -102,7 +103,7 @@ for group in groups:
             )
         else:
             expected = hasher if name == "spr-hasher" else sdk
-            valid = dependency.get("version") in (expected, f"={expected}")
+            valid = dependency.get("version") == expected
         if not valid:
             errors.append(f"{path}: {name} does not match the pinned SDK release: {dependency}")
 if errors:
