@@ -20,7 +20,6 @@ spr-interface = { workspace = true }
 spr-keypair = { workspace = true }
 spr-program = { workspace = true, features = ["client"] }
 spr-program-test = { workspace = true, features = ["localnet"] }
-spr-test-utils = { workspace = true }
 spr-transaction = { workspace = true }
 spr-user-registry-interface = { workspace = true, features = ["solana"] }
 

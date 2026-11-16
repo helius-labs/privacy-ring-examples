@@ -92,11 +92,7 @@ fn swap_program_id() -> Pubkey {
 }
 
 pub fn setup_mollusk() -> (Mollusk, Pubkey) {
-    spr_test_utils::mollusk::mollusk_with_program(
-        SBF_DIR,
-        *swap_program::ID.as_array(),
-        "swap_program",
-    )
+    crate::mollusk::mollusk_with_program(SBF_DIR, *swap_program::ID.as_array(), "swap_program")
 }
 
 pub fn account(lamports: u64) -> Account {

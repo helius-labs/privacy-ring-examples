@@ -31,7 +31,6 @@ spr-user-registry-interface = { workspace = true, features = ["pda"] }
 
 [dev-dependencies]
 groth16-solana = { workspace = true }
-spr-test-utils = { workspace = true }
 solana-account = { workspace = true }
 solana-keypair = { workspace = true }
 solana-signature = { workspace = true }

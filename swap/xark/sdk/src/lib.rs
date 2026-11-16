@@ -6,6 +6,10 @@ pub mod proof;
 pub mod shared;
 pub mod state;
 
+#[cfg(test)]
+#[path = "../../../../test-utils/utxo.rs"]
+mod test_utxo;
+
 use solana_address::Address;
 use spr_program::ProgramOwner;
 /// The program's wire types, which the instruction builders' fields name.

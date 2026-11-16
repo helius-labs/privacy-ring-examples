@@ -1,4 +1,6 @@
 mod common;
+#[path = "../../../../test-utils/mollusk.rs"]
+mod mollusk;
 
 #[path = "failing/cancel.rs"]
 mod cancel;

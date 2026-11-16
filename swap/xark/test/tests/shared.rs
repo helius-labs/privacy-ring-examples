@@ -8,16 +8,21 @@ use spr_keypair::{ShieldedKeypair, SigningKey};
 use spr_program_test::{
     fixture,
     localnet::{FixtureLocalnet, LocalnetPaths, LocalnetPorts},
+    SprProgramTest,
 };
-use spr_test_utils::test_validator_asserts::wait_for_indexed_utxo;
-use spr_test_utils::wallet::{sync_wallet, Deposit, DepositParams, Filter, Wallet};
-use spr_transaction::{AssetRegistry, WalletUtxo, SOL_MINT};
+use spr_transaction::{AssetRegistry, WalletUtxo};
 use spr_user_registry_interface::user_registry_program_id;
 
 use std::{
     env,
     path::{Path, PathBuf},
 };
+
+#[path = "../../../../test-utils/wallet.rs"]
+mod wallet;
+
+use wallet::deposit;
+pub use wallet::{wait_for_merkle_proof, TestWallet};
 
 // The whole per-transaction budget: a swap verifies an SPP proof and its own.
 const TRANSACT_COMPUTE_UNIT_LIMIT: u32 = 1_400_000;
@@ -28,8 +33,8 @@ pub const SOURCE_AMOUNT: u64 = 400_000_000;
 pub const DESTINATION_AMOUNT: u64 = 250_000_000;
 
 // Each actor is one ed25519 identity: the wallet's signing key doubles as the
-// Solana fee payer (`to_solana_keypair`), and the wallet holds the asset
-// registry and the synced spendable notes.
+// Solana fee payer, and the wallet holds the asset registry and the spendable
+// notes its scan found after the deposits.
 pub struct TestEnv {
     /// The localnet with its client and default tree. Dropping it stops the
     /// validator, so it lives as long as the test.
@@ -41,23 +46,6 @@ pub struct TestEnv {
     pub spl_mint: Address,
 }
 
-pub struct TestWallet {
-    pub wallet: Wallet,
-    pub keypair: ShieldedKeypair,
-}
-
-impl std::ops::Deref for TestWallet {
-    type Target = Wallet;
-    fn deref(&self) -> &Self::Target {
-        &self.wallet
-    }
-}
-
-impl std::ops::DerefMut for TestWallet {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.wallet
-    }
-}
 /// `file` under this workspace's `target/deploy`, where `cargo build-sbf`
 /// writes the program.
 fn deploy_path(file: &str) -> PathBuf {
@@ -140,44 +128,30 @@ pub fn setup(test: u16) -> Result<TestEnv> {
     let taker_address = taker_shielded_keypair
         .shielded_address()
         .map_err(|e| anyhow!("taker address: {e:?}"))?;
-    let maker_deposit = Deposit::new(DepositParams {
-        recipient: &maker_address,
-        asset: spl_mint,
-        amount: MAKER_SHIELD_SPL,
-        spl_token_account: Some(spl_funding),
-        spl_token_program: Some(spr_interface::pda::spl_token_program_id()),
-        memo: None,
-    })?;
-    let maker_view_tag = maker_deposit.view_tag();
-    let maker_signature = maker_deposit.send(&localnet.client, &payer, localnet.tree, &payer)?;
-    let taker_deposit = Deposit::new(DepositParams {
-        recipient: &taker_address,
-        asset: SOL_MINT,
-        amount: DESTINATION_AMOUNT,
-        spl_token_account: None,
-        spl_token_program: Some(spr_interface::pda::spl_token_program_id()),
-        memo: None,
-    })?;
-    let taker_view_tag = taker_deposit.view_tag();
-    let taker_signature = taker_deposit.send(&localnet.client, &payer, localnet.tree, &payer)?;
+    deposit(
+        &localnet,
+        &payer,
+        SprProgramTest::wallet_spl_shield_data(
+            MAKER_SHIELD_SPL,
+            &maker_address,
+            &spl_mint,
+            &spl_funding,
+        )?,
+    )?;
+    deposit(
+        &localnet,
+        &payer,
+        SprProgramTest::wallet_sol_shield_data(DESTINATION_AMOUNT, &taker_address)?,
+    )?;
 
-    // Both deposits are wallet-owned, so discover them through the indexer
-    // once they are indexed.
-    wait_for_indexed_utxo(&localnet.client, maker_view_tag, maker_signature);
-    wait_for_indexed_utxo(&localnet.client, taker_view_tag, taker_signature);
-    let mut maker_wallet =
-        Wallet::new(maker_address, assets.clone()).map_err(|e| anyhow!("maker wallet: {e:?}"))?;
-    let mut taker_wallet =
-        Wallet::new(taker_address, assets.clone()).map_err(|e| anyhow!("taker wallet: {e:?}"))?;
-    sync_wallet(&mut maker_wallet, &maker_shielded_keypair, &localnet.client)
-        .map_err(|e| anyhow!("sync maker deposit: {e:?}"))?;
-    sync_wallet(&mut taker_wallet, &taker_shielded_keypair, &localnet.client)
-        .map_err(|e| anyhow!("sync taker deposit: {e:?}"))?;
-    let maker_input = maker_wallet
-        .balance(spl_mint, Some(Filter::MinAmount(MAKER_SHIELD_SPL)))?
-        .utxos
-        .first()
-        .cloned()
+    // Both deposits are wallet-owned and indexed, so each wallet discovers
+    // its own through the indexer.
+    let maker = TestWallet::scan(maker_shielded_keypair, assets.clone(), &localnet.client)
+        .map_err(|e| anyhow!("scan maker deposit: {e:?}"))?;
+    let taker = TestWallet::scan(taker_shielded_keypair, assets, &localnet.client)
+        .map_err(|e| anyhow!("scan taker deposit: {e:?}"))?;
+    let maker_input = maker
+        .spendable_utxo(spl_mint, MAKER_SHIELD_SPL)
         .ok_or_else(|| anyhow!("no maker SPL note of {MAKER_SHIELD_SPL}"))?;
     assert_eq!(
         (maker_input.utxo.asset.asset, maker_input.utxo.amount),
@@ -186,15 +160,9 @@ pub fn setup(test: u16) -> Result<TestEnv> {
 
     let env = TestEnv {
         localnet,
-        maker: TestWallet {
-            wallet: maker_wallet,
-            keypair: maker_shielded_keypair,
-        },
+        maker,
         maker_input,
-        taker: TestWallet {
-            wallet: taker_wallet,
-            keypair: taker_shielded_keypair,
-        },
+        taker,
         spl_mint,
     };
     Ok(env)

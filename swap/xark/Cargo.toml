@@ -20,7 +20,6 @@ spr-keypair = { version = "0.10.0" }
 spr-merkle-tree = { version = "0.10.0" }
 spr-program = { version = "0.10.0" }
 spr-program-test = { version = "0.10.0" }
-spr-test-utils = { git = "https://github.com/helius-labs/zolana", tag = "spr-client-v0.10.0" }
 spr-transaction = { version = "0.10.0" }
 spr-tree = { version = "0.10.0" }
 spr-user-registry-interface = { version = "0.10.0" }

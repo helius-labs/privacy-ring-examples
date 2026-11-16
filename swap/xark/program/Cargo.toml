@@ -45,7 +45,6 @@ spr-program = { workspace = true, features = ["cpi", "compression", "verifier"] 
 
 [dev-dependencies]
 mollusk-svm = { workspace = true }
-spr-test-utils = { workspace = true, features = ["mollusk"] }
 solana-account = { workspace = true }
 solana-instruction = { workspace = true }
 solana-pubkey = { workspace = true }

@@ -5,6 +5,8 @@ mod cancel_circuit;
 mod make_circuit;
 mod shared;
 mod take_circuit;
+#[path = "../../../../test-utils/utxo.rs"]
+mod utxo;
 
 #[test]
 fn circuits_encode_only_their_specified_utxo_inputs() {

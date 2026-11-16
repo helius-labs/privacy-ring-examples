@@ -3,11 +3,10 @@ mod shared;
 use std::time::Duration;
 
 use anyhow::{anyhow, Result};
-use shared::{send, setup, TestEnv, DESTINATION_AMOUNT, SOURCE_AMOUNT};
+use shared::{send, setup, wait_for_merkle_proof, TestEnv, DESTINATION_AMOUNT, SOURCE_AMOUNT};
 use solana_address::Address;
 use spr_client::{user_registry::ensure_registered, Rpc};
 use spr_interface::error::ShieldedPoolError;
-use spr_test_utils::{test_validator_asserts::wait_for_merkle_proof, wallet::Filter};
 use spr_transaction::{Mint, SOL_MINT};
 use swap_program::error::SwapError;
 use swap_sdk::{
@@ -119,16 +118,13 @@ fn make_and_take_swap_inline() -> Result<()> {
 
     // 3. Take with the taker's SOL note.
     let taker_input = taker
-        .balance(SOL_MINT, Some(Filter::MinAmount(DESTINATION_AMOUNT)))?
-        .utxos
-        .first()
-        .cloned()
+        .spendable_utxo(SOL_MINT, DESTINATION_AMOUNT)
         .ok_or_else(|| anyhow!("no spendable SOL note of {DESTINATION_AMOUNT}"))?;
     let order_state = wait_for_merkle_proof(
         client.indexer(),
         localnet.tree,
         order_utxo.hash(localnet.tree_id)?,
-    );
+    )?;
     let mut take_transaction = TakeTransactionParams {
         order_utxo: order_utxo.clone(),
         order_leaf_index: order_state.leaf_index,
