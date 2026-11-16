@@ -81,9 +81,8 @@ python3 test-utils/compare-benchmarks.py swap
 
 Each crate is its own package with no shared workspace, so build them one at a
 time. The Zolana crates use the published SDK 0.10.0 releases (`spr-hasher`
-remains at 0.8.0). Unpublished test helpers use the `spr-client-v0.10.0` release
-tag and share the crates.io SDK through Cargo patches. Run the commands below
-from `swap/gnark/`.
+remains at 0.8.0). The tests share helpers from
+[`../test-utils/`](../test-utils/). Run the commands below from `swap/gnark/`.
 
 ```bash
 cargo build-sbf --manifest-path program/Cargo.toml --tools-version v1.54 -- --features bpf-entrypoint
@@ -191,12 +190,12 @@ the fields:
 
 One Cargo workspace. Use Rust 1.98.1 (`rust-toolchain.toml`), Agave with SBF
 platform tools v1.54. The workspace uses Zolana SDK 0.10.0 and
-Xark [0.3.1](https://crates.io/crates/xark/0.3.1) from crates.io. Unpublished
-test helpers come from the `spr-client-v0.10.0` release tag. The `zolana` CLI
-is the `cli-v0.10.0` release binary, which includes Xark. The setup script
-checks the workspace's SDK release pins, downloads the CLI for
-darwin-arm64 or linux-x64, checks it against the release's `SHA256SUMS` and
-installs it to `.tools/bin/zolana`. It prints `ZOLANA_CLI_BIN`;
+Xark [0.3.1](https://crates.io/crates/xark/0.3.1) from crates.io. The tests
+share helpers from [`../test-utils/`](../test-utils/). The `zolana` CLI is the
+`cli-v0.10.0` release binary, which includes Xark. The setup script checks the
+workspace's SDK release pins, downloads the CLI for darwin-arm64 or linux-x64,
+checks it against the release's `SHA256SUMS` and installs it to
+`.tools/bin/zolana`. It prints `ZOLANA_CLI_BIN`;
 `scripts/setup-zk-tools.sh --check-pins` only checks the pins. Run the
 commands below from `swap/xark/`.
 

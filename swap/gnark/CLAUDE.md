@@ -66,10 +66,10 @@ instructions, and circuits.
 - test: `spr-program-test` for the localnet harness,
   `spr-client` (+`indexer-api`, `solana-rpc`), `mollusk-svm` +
   `light-program-profiler` for benchmarks.
-- No crate depends on the unpublished `spr-test-utils`, not even as a dev
-  dependency. Test helpers are local and built on public crates:
-  `program/tests/common`, `sdk/src/shared.rs` (`cfg(test)`),
-  `test/tests/shared.rs` and `test/tests/utxo.rs`.
+- No crate depends on an unpublished Zolana crate, not even as a dev
+  dependency. Test helpers built on the published crates live in the
+  repository's `test-utils/` (`mollusk.rs`, `utxo.rs`, `proving.rs`,
+  `wallet.rs`), which the tests include with `#[path]`.
 
 ## Key Artifacts
 

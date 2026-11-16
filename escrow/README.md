@@ -85,11 +85,9 @@ verifier of each circuit from its verifying key.
 
 The workspace uses the published Zolana SDK 0.10.0 (`spr-hasher` remains at
 0.8.0) and Xark [0.3.1](https://crates.io/crates/xark/0.3.1) from crates.io.
-Unpublished test helpers use the `spr-client-v0.10.0` release tag, with Cargo
-patches routing their SDK dependencies to crates.io, as in the gnark
-implementation. The `zolana` CLI is the
-`cli-v0.10.0` release binary, which includes Xark. The program ID is
-`42uWG786CJAdtdZy5KEEtE7QCuSHjVFu5ZAq32Z41hDD`.
+The tests share helpers from [`../test-utils/`](../test-utils/) with the gnark
+implementation. The `zolana` CLI is the `cli-v0.10.0` release binary, which
+includes Xark. The program ID is `42uWG786CJAdtdZy5KEEtE7QCuSHjVFu5ZAq32Z41hDD`.
 
 What differs from the gnark implementation, within the spec:
 

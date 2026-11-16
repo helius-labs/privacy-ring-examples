@@ -113,13 +113,6 @@ jobs:
           total = 0
           for manifest in open(sys.argv[1]).read().split():
               text = open(manifest).read()
-              # A source sync replaces the released SDK, including the patches
-              # that normally route the unpublished test helpers to crates.io.
-              text = re.sub(
-                  r'(?ms)^# Route the unpublished release-tag test helpers through the published SDK\.\n'
-                  r'\[patch\."https://github\.com/helius-labs/zolana"\]\n.*?(?=^\[|\Z)',
-                  '', text,
-              )
               text, git_pins = re.subn(
                   r'(git\s*=\s*"https://github\.com/helius-labs/zolana(?:\.git)?"\s*,\s*)(?:rev|tag)\s*=\s*"[^"]+"',
                   rf'\1rev = "{sha}"',

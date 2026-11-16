@@ -9,11 +9,10 @@ if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
 fi
 
 zolana_release=cli-v0.10.0
-# Published SDK versions and the release source for unpublished test helpers
-# and Go modules. spr-hasher was unchanged in the 0.10.0 SDK release.
+# Published SDK versions and the release revision of the Go modules.
+# spr-hasher was unchanged in the 0.10.0 SDK release.
 zolana_sdk_version=0.10.0
 zolana_hasher_version=0.8.0
-zolana_sdk_tag=spr-client-v0.10.0
 zolana_revision=c16997e04f804cc7fe09e69529b062788cd89dcc
 # Digest of the release's SHA256SUMS, which pins the CLI binaries.
 zolana_sha256sums_sha256=428a072b10f39115b7e2cb9cdfb3310b724f722b3a5a040729876ec936e904cb
@@ -70,14 +69,14 @@ fetch() {
     chmod 644 "$download" && mv -f "$download" "$path"
 }
 
-# check_pins <Cargo.toml>: validate published SDK versions and release source
-# pins. sync-sdk.yml can temporarily replace the releases with a Git revision.
+# check_pins <Cargo.toml>: validate published SDK versions. sync-sdk.yml can
+# temporarily replace the releases with zolana_revision.
 check_pins() {
-    python3 - "$1" "$zolana_sdk_version" "$zolana_hasher_version" "$zolana_sdk_tag" "$zolana_revision" <<'PY'
+    python3 - "$1" "$zolana_sdk_version" "$zolana_hasher_version" "$zolana_revision" <<'PY'
 import sys
 import tomllib
 
-path, sdk, hasher, tag, revision = sys.argv[1:]
+path, sdk, hasher, revision = sys.argv[1:]
 with open(path, "rb") as source:
     manifest = tomllib.load(source)
 
@@ -97,8 +96,9 @@ for group in groups:
             continue
         if "git" in dependency:
             repository = dependency["git"].removesuffix(".git")
-            valid = repository == "https://github.com/helius-labs/zolana" and (
-                dependency.get("rev") == revision or dependency.get("tag") == tag
+            valid = (
+                repository == "https://github.com/helius-labs/zolana"
+                and dependency.get("rev") == revision
             )
         else:
             expected = hasher if name == "spr-hasher" else sdk

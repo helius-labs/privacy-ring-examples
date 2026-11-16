@@ -41,10 +41,10 @@ CI runs all five Rust and TypeScript client examples and the swap (take and
 cancel) and timelock escrow flows of both implementations: the gnark ones in
 the `examples` workflow and the Xark ones in `swap-xark` and `escrow-xark`.
 All Rust examples and the Rust client use the published Zolana SDK 0.10.0
-crates; `spr-hasher` remains at 0.8.0. The unpublished `spr-test-utils` comes
-from the `spr-client-v0.10.0` release tag, with Cargo patches routing its SDK
-dependencies to crates.io. The profiler stays at the release's Git revision
-because its published 0.1.1 lacks Mollusk support.
+crates; `spr-hasher` remains at 0.8.0. The tests use no unpublished Zolana
+crates: their shared helpers live in [`test-utils/`](test-utils/). The
+profiler stays at the release's Git revision because its published 0.1.1 lacks
+Mollusk support.
 The Xark implementations use Xark 0.3.1; see [`swap/README.md`](swap/README.md)
 and [`escrow/README.md`](escrow/README.md).
 The TypeScript client uses the npm release `@heliuslabs/spr@0.9.0-alpha`,

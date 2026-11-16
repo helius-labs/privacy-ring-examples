@@ -5,9 +5,9 @@ members = ["program", "sdk", "test"]
 [workspace.package]
 edition = "2021"
 
-# Zolana and Xark use crates.io releases. Unpublished test helpers use the SDK
-# release tag. scripts/setup-zk-tools.sh checks the pins against
-# test-utils/zolana-release.sh and installs the cli-v0.10.0 release's CLI.
+# Zolana and Xark use crates.io releases. scripts/setup-zk-tools.sh checks the
+# pins against test-utils/zolana-release.sh and installs the cli-v0.10.0
+# release's CLI.
 [workspace.dependencies]
 xark = "0.3.1"
 xark-groth16 = "0.3.1"
