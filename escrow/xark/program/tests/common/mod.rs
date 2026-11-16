@@ -30,7 +30,7 @@ const NULLIFIER_PDA: Address = Address::new_from_array([24; 32]);
 pub const UNLOCK_TIMESTAMP: u64 = 1_000;
 
 pub fn setup_mollusk() -> Mollusk {
-    let (mollusk, _) = spr_test_utils::mollusk::mollusk_with_program(
+    let (mollusk, _) = crate::mollusk::mollusk_with_program(
         SBF_DIR,
         *timelock_escrow_program::ID.as_array(),
         "timelock_escrow_program",

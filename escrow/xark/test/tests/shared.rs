@@ -9,18 +9,20 @@ use solana_keypair::Keypair;
 use solana_signature::Signature;
 use solana_signer::Signer;
 use spr_client::{ComputeBudgetConfig, HistoryFilters, Rpc};
-use spr_interface::pda::spl_token_program_id;
 use spr_keypair::{ShieldedAddress, ShieldedKeypair};
 use spr_program_test::{
     fixture,
     localnet::{FixtureLocalnet, LocalnetPaths, LocalnetPorts},
-};
-use spr_test_utils::{
-    test_validator_asserts::wait_for_indexed_utxo,
-    wallet::{sync_wallet, Deposit, DepositParams, Wallet},
+    SprProgramTest,
 };
 use spr_transaction::{AssetRegistry, ShieldedTransaction, WalletUtxo, SOL_MINT};
 use timelock_escrow_sdk::escrow_authority;
+
+#[path = "../../../../test-utils/wallet.rs"]
+mod wallet;
+
+use wallet::deposit;
+pub use wallet::TestWallet;
 
 // The whole per-transaction budget: the escrow forwards an SPP transact.
 const TRANSACT_COMPUTE_UNIT_LIMIT: u32 = 1_400_000;
@@ -63,8 +65,8 @@ pub struct TestEnv {
     pub creator: Actor,
     /// The shielded balance the escrow locks from, owned by the creator.
     pub creator_input: WalletUtxo,
-    /// The creator's wallet, synced after the deposit.
-    pub wallet: Wallet,
+    /// The creator's wallet, scanned after the deposit.
+    pub wallet: TestWallet,
 }
 
 /// `file` under this workspace's `target/deploy`, where `cargo build-sbf`
@@ -117,26 +119,23 @@ pub fn setup(test: u16) -> Result<TestEnv> {
     // SOL only: asset id 1 is a built-in AssetRegistry::default() entry, no
     // SPL registration needed.
     let creator_address = creator.address()?;
-    let deposit = Deposit::new(DepositParams {
-        recipient: &creator_address,
-        asset: SOL_MINT,
-        amount: SHIELD_AMOUNT,
-        spl_token_account: None,
-        spl_token_program: Some(spl_token_program_id()),
-        memo: None,
-    })?;
-    let view_tag = deposit.view_tag();
-    let signature = deposit.send(&localnet.client, &payer, localnet.tree, &payer)?;
-    wait_for_indexed_utxo(&localnet.client, view_tag, signature);
+    deposit(
+        &localnet,
+        &payer,
+        SprProgramTest::wallet_sol_shield_data(SHIELD_AMOUNT, &creator_address)?,
+    )?;
 
     // The creator's wallet reads the deposit back from the indexer.
-    let mut wallet = Wallet::new(creator_address, AssetRegistry::default())
-        .map_err(|e| anyhow!("creator wallet: {e:?}"))?;
-    sync_wallet(&mut wallet, &creator.shielded, localnet.client.indexer())
-        .map_err(|e| anyhow!("sync creator after deposit: {e:?}"))?;
+    let wallet = TestWallet::scan(
+        creator.shielded.clone(),
+        AssetRegistry::default(),
+        localnet.client.indexer(),
+    )
+    .map_err(|e| anyhow!("scan creator after deposit: {e:?}"))?;
     let balance = wallet
-        .balance(SOL_MINT, None)
-        .map_err(|e| anyhow!("creator balance: {e:?}"))?;
+        .balance(SOL_MINT)
+        .cloned()
+        .ok_or_else(|| anyhow!("the creator has no SOL balance"))?;
     let [creator_input]: [WalletUtxo; 1] = balance
         .utxos
         .try_into()

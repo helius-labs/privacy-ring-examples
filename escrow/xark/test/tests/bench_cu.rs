@@ -31,6 +31,8 @@
 //! account holds.
 #[path = "../../../../test-utils/bench_report.rs"]
 mod bench_report;
+#[path = "../../../../test-utils/proving.rs"]
+mod proving;
 #[path = "../../../../test-utils/xark_proving.rs"]
 mod xark_proving;
 
@@ -47,6 +49,7 @@ use bench_report::{
 use light_program_profiler::mollusk::{register_profiling_syscalls, take_profiling_entries};
 use mollusk_svm::{program::loader_keys::LOADER_V3, result::Check, Mollusk};
 use num_bigint::BigUint;
+use proving::{dummy_proofs, nullifier_tree, start_prover};
 use solana_account::Account;
 use solana_address::Address;
 use solana_instruction::Instruction;
@@ -68,7 +71,6 @@ use spr_interface::{
 use spr_keypair::ShieldedKeypair;
 use spr_merkle_tree::{indexed::IndexedMerkleTree, MerkleTree};
 use spr_program::{proof::compressed_proof, CompressedProof, ProgramOwner, ProgramProofInputs};
-use spr_test_utils::{transact::nullifier_tree, utxo::dummy_proofs};
 use spr_transaction::{instructions::transact::SppProofInputs, utxo::Utxo, Data, Mint, WalletUtxo};
 use spr_tree::TreeAccount;
 use timelock_escrow_sdk::{
@@ -232,7 +234,7 @@ fn spend_fixture(tree: &Address, proof_inputs: &SppProofInputs) -> (Account, Vec
     let (tree_account, utxo_root, nullifier_root, root_index) = build_tree_fixture(tree, &leaves);
     let state_tree = local_state_tree(&leaves);
     assert_eq!(state_tree.root(), utxo_root, "state root gate");
-    let nf_tree = nullifier_tree().expect("nullifier tree");
+    let nf_tree = nullifier_tree();
     assert_eq!(nf_tree.root(), nullifier_root, "nullifier root gate");
     let merkle_context = merkle_context(tree);
     let spend_proofs = commitments
@@ -363,18 +365,6 @@ fn key_load_probe() {
             .expect("known circuit");
         proof::checked_circuit(circuit).expect("load checked circuit")
     });
-}
-
-/// Start the shared prover using the configured keys directory.
-fn start_prover() {
-    if env::var_os("ZOLANA_PROVER_KEYS_DIR").is_none() {
-        let home = env::var("HOME").expect("HOME is set");
-        env::set_var(
-            "ZOLANA_PROVER_KEYS_DIR",
-            Path::new(&home).join(".config/zolana/proving-keys"),
-        );
-    }
-    spr_client::spawn_prover().expect("spawn prover");
 }
 
 /// The shielded pool program: `SHIELDED_POOL_PROGRAM_PATH`, else

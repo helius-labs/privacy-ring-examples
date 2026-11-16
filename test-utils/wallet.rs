@@ -3,16 +3,15 @@
 //! indexer.
 //!
 //! Include it with `#[path = ".../test-utils/wallet.rs"] mod wallet;`. It needs
-//! `anyhow`, `solana-address`, `solana-pubkey`, `solana-signature`,
-//! `solana-signer`, `spr-client`, `spr-keypair`, `spr-program`,
-//! `spr-program-test` (with `localnet`) and `spr-transaction`.
+//! `anyhow`, `solana-address`, `solana-signature`, `solana-signer`,
+//! `spr-client`, `spr-keypair`, `spr-program`, `spr-program-test` (with
+//! `localnet`) and `spr-transaction`.
 #![allow(dead_code)]
 
 use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, Result};
 use solana_address::Address;
-use solana_pubkey::Pubkey;
 use solana_signature::Signature;
 use solana_signer::Signer;
 use spr_client::{ComputeBudgetConfig, MerkleProof, Rpc, UtxoScan};
@@ -100,7 +99,7 @@ pub fn deposit(
 /// Poll the indexer until it serves the inclusion proof of `leaf` in `tree`.
 pub fn wait_for_merkle_proof(
     indexer: &impl Rpc,
-    tree: Pubkey,
+    tree: Address,
     leaf: [u8; 32],
 ) -> Result<MerkleProof> {
     let started = Instant::now();

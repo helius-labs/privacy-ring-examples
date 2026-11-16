@@ -2,14 +2,14 @@ mod shared;
 
 use anyhow::{anyhow, Result};
 use shared::{
-    creator_transactions, send, setup, Actor, TestEnv, LOCK_AMOUNT, SHIELD_AMOUNT, UNLOCK_TIMESTAMP,
+    creator_transactions, send, setup, Actor, TestEnv, TestWallet, LOCK_AMOUNT, SHIELD_AMOUNT,
+    UNLOCK_TIMESTAMP,
 };
 use solana_address::Address;
 use solana_instruction::Instruction;
 use solana_signer::Signer;
 use spr_program::InputRecords;
 use spr_program_test::fixture;
-use spr_test_utils::wallet::{sync_wallet, Wallet};
 use spr_transaction::{AssetRegistry, SOL_ASSET_ID, SOL_MINT};
 use timelock_escrow_program::error::TimelockEscrowError;
 use timelock_escrow_sdk::{
@@ -184,7 +184,8 @@ fn escrow_then_withdraw() -> Result<()> {
     // 0.5 SOL source is spent, and the escrow UTXO is owned by the
     // escrow-authority PDA, so it does not surface in the creator's own
     // wallet sync.
-    sync_wallet(&mut wallet, &creator.shielded, client.indexer())
+    wallet
+        .rescan(client.indexer())
         .map_err(|e| anyhow!("sync creator after escrow: {e:?}"))?;
     let expected_change = (SHIELD_AMOUNT - LOCK_AMOUNT, change_blinding);
     assert_eq!(
@@ -283,7 +284,8 @@ fn escrow_then_withdraw() -> Result<()> {
     // balance: the change note plus the returned escrow amount sum back to
     // the original shielded deposit, as distinct notes. No open escrow
     // remains.
-    sync_wallet(&mut wallet, &creator.shielded, client.indexer())
+    wallet
+        .rescan(client.indexer())
         .map_err(|e| anyhow!("sync creator after withdraw: {e:?}"))?;
     assert_eq!(
         balance(&wallet)?,
@@ -309,17 +311,17 @@ fn escrow_then_withdraw() -> Result<()> {
 /// and blinding in sync order.
 type Balance = (u64, solana_address::Address, u64, Vec<(u64, [u8; 32])>);
 
-fn balance(wallet: &Wallet) -> Result<Balance> {
+fn balance(wallet: &TestWallet) -> Result<Balance> {
     let balance = wallet
-        .balance(SOL_MINT, None)
-        .map_err(|e| anyhow!("creator balance: {e:?}"))?;
+        .balance(SOL_MINT)
+        .ok_or_else(|| anyhow!("the creator has no SOL balance"))?;
     Ok((
         balance.asset_id,
         balance.mint,
         balance.amount,
         balance
             .utxos
-            .into_iter()
+            .iter()
             .map(|note| (note.utxo.amount, note.utxo.blinding))
             .collect(),
     ))

@@ -20,7 +20,6 @@ spr-keypair = { version = "0.10.0" }
 spr-merkle-tree = { version = "0.10.0" }
 spr-program = { version = "0.10.0" }
 spr-program-test = { version = "0.10.0" }
-spr-test-utils = { git = "https://github.com/helius-labs/zolana", tag = "spr-client-v0.10.0" }
 spr-transaction = { version = "0.10.0" }
 spr-tree = { version = "0.10.0" }
 
@@ -39,6 +38,7 @@ solana-address = { version = "2.7", features = ["atomic", "borsh", "bytemuck", "
 solana-instruction = "3.4"
 solana-keypair = "3.1.2"
 solana-program-error = "3.0"
+solana-pubkey = "4.3"
 solana-signature = "3.4"
 solana-signer = "3.0"
 

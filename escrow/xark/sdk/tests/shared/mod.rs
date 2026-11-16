@@ -146,7 +146,7 @@ pub fn owner_pk_field(creator: &ShieldedKeypair) -> Field {
 /// A plain `amount` UTXO of [`mint`] owned by `owner`, at leaf 0 of
 /// [`OUTPUT_TREE_ID`].
 pub fn token_input(owner: &ShieldedKeypair, amount: u64) -> WalletUtxo {
-    spr_test_utils::utxo::wallet(
+    crate::utxo::wallet_utxo(
         Utxo {
             owner: owner.signing_pubkey(),
             asset: mint(),
@@ -158,10 +158,7 @@ pub fn token_input(owner: &ShieldedKeypair, amount: u64) -> WalletUtxo {
         &owner.nullifier_key,
         OUTPUT_TREE_ID,
         0,
-        None,
-        None,
     )
-    .unwrap()
 }
 
 /// An escrow of `escrow_amount` from a source UTXO of the creator holding

@@ -1,8 +1,8 @@
+use crate::mollusk::expect_err_exact;
 use mollusk_svm::Mollusk;
 use solana_instruction::Instruction;
 use solana_program_error::ProgramError;
 use spr_account_checks::error::AccountError;
-use spr_test_utils::mollusk::expect_err_exact;
 use timelock_escrow_program::{error::TimelockEscrowError, tag};
 
 use crate::common::{
