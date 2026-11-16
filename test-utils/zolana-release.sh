@@ -9,16 +9,14 @@ if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
 fi
 
 zolana_release=cli-v0.10.0
-# The SDK commit of zolana_release, which every Zolana Git and Go pin names:
-# the cli-v0.10.0 release commit (357dd92) plus the fetchable gnark-sdk Go
-# module, with the SDK crates the release CLI, prover and programs were built
-# from. The two move together. sync-sdk.yml bumps only this revision and the
-# pins, so it opens a draft PR that is merged only after zolana_release, its
-# digest and the docs naming it are bumped by hand to a release built from the
-# new commit.
-zolana_revision=ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08
+# Published SDK versions and the release source for unpublished test helpers
+# and Go modules. spr-hasher was unchanged in the 0.10.0 SDK release.
+zolana_sdk_version=0.10.0
+zolana_hasher_version=0.8.0
+zolana_sdk_tag=spr-client-v0.10.0
+zolana_revision=c16997e04f804cc7fe09e69529b062788cd89dcc
 # Digest of the release's SHA256SUMS, which pins the CLI binaries.
-zolana_sha256sums_sha256=c60bebdff467f413e79a915bffd68bef15d6ca804afcd844f466a3a39727675e
+zolana_sha256sums_sha256=428a072b10f39115b7e2cb9cdfb3310b724f722b3a5a040729876ec936e904cb
 # `zolana dev artifacts` does not fetch the user registry; this is the
 # deployed user-registry v1.0.0 program.
 user_registry_release=user-registry-v1.0.0
@@ -72,25 +70,44 @@ fetch() {
     chmod 644 "$download" && mv -f "$download" "$path"
 }
 
-# check_pins <Cargo.toml>: Cargo manifests cannot read zolana_revision; fail
-# when any line naming the Zolana repository is not
-# `git = "<repository>", rev = "<zolana_revision>"`, the form sync-sdk.yml
-# rewrites. The URL is matched up to an optional `.git` and the closing quote,
-# so other helius-labs repositories such as zolana-examples do not match. A
-# multi-line dependency table, with `git` and `rev` on separate lines, is
-# reported as bad on purpose: neither this check nor the sync bump reads one.
+# check_pins <Cargo.toml>: validate published SDK versions and release source
+# pins. sync-sdk.yml can temporarily replace the releases with a Git revision.
 check_pins() {
-    local repository='"https://github\.com/helius-labs/zolana(\.git)?"' bad
-    # Collect first: with pipefail, `grep -q` closing the pipe early would make
-    # the pipeline fail and hide a bad pin.
-    bad=$(grep -E "$repository" "$1" |
-        grep -vE "git[[:space:]]*=[[:space:]]*$repository[[:space:]]*,[[:space:]]*rev[[:space:]]*=[[:space:]]*\"$zolana_revision\"" ||
-        true)
-    if [[ -n $bad ]]; then
-        echo "$1 names helius-labs/zolana without git = \"...\", rev = \"$zolana_revision\":" >&2
-        echo "$bad" >&2
-        return 1
-    fi
+    python3 - "$1" "$zolana_sdk_version" "$zolana_hasher_version" "$zolana_sdk_tag" "$zolana_revision" <<'PY'
+import sys
+import tomllib
+
+path, sdk, hasher, tag, revision = sys.argv[1:]
+with open(path, "rb") as source:
+    manifest = tomllib.load(source)
+
+groups = [manifest.get("workspace", {}).get("dependencies", {})]
+tables = [manifest, *manifest.get("target", {}).values()]
+for table in tables:
+    groups.extend(table.get(kind, {}) for kind in ("dependencies", "dev-dependencies", "build-dependencies"))
+groups.extend(manifest.get("patch", {}).values())
+errors = []
+for group in groups:
+    for name, dependency in group.items():
+        if not name.startswith("spr-"):
+            continue
+        if isinstance(dependency, str):
+            dependency = {"version": dependency}
+        if dependency.get("workspace"):
+            continue
+        if "git" in dependency:
+            repository = dependency["git"].removesuffix(".git")
+            valid = repository == "https://github.com/helius-labs/zolana" and (
+                dependency.get("rev") == revision or dependency.get("tag") == tag
+            )
+        else:
+            expected = hasher if name == "spr-hasher" else sdk
+            valid = dependency.get("version") in (expected, f"={expected}")
+        if not valid:
+            errors.append(f"{path}: {name} does not match the pinned SDK release: {dependency}")
+if errors:
+    sys.exit("\n".join(errors))
+PY
 }
 
 # check_go_pins <go.mod>: fail unless the module requires gnark-sdk and every

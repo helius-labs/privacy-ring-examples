@@ -8,9 +8,10 @@ Read sha and html_url from the payload section at the end of this prompt. Do not
 - typescript-client/examples/deposit_transfer_withdraw.ts
 - rust-client/examples/deposit_transfer_withdraw.rs
 
-The workflow has already pinned the payload sha everywhere: the TS package,
-every `helius-labs/zolana` Git rev in every Cargo.toml (gnark, Xark and
-rust-client) with their lockfiles, `zolana_revision` in
+The workflow has already replaced the released SDK dependencies with the
+payload sha everywhere: the TS package and every Zolana dependency in each
+Cargo.toml (gnark, Xark and rust-client), removed the release-source patches,
+and refreshed their lockfiles. It also updated `zolana_revision` in
 `test-utils/zolana-release.sh`, and the gnark-sdk and prover/server
 pseudo-versions in both gnark `go.mod` files, and refreshed every lockfile.
 Do not change any pin, manifest or lockfile; the workflow fails on any edit
@@ -20,8 +21,7 @@ outside the allowlist, including new files.
 
 - package name `@heliuslabs/spr`
 - typescript-client/package.json, typescript-client/pnpm-lock.yaml
-- rust-client/Cargo.toml (its comment points at `zolana_revision`, so it
-  names no commit) and rust-client/Cargo.lock
+- rust-client/Cargo.toml and rust-client/Cargo.lock
 - swap/** and escrow/**, including their Cargo and Go pins
 - test-utils/**
 - READMEs, comments, formatting, CI YAML

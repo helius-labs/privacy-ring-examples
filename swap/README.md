@@ -80,10 +80,9 @@ python3 test-utils/compare-benchmarks.py swap
 ### Build
 
 Each crate is its own package with no shared workspace, so build them one at a
-time. The Zolana crates are Git dependencies at commit
-[`ca4cf4f`](https://github.com/helius-labs/zolana/commit/ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08), the
-[`cli-v0.10.0`](https://github.com/helius-labs/zolana/releases/tag/cli-v0.10.0)
-release commit plus the fetchable gnark-sdk Go module. Run the commands below
+time. The Zolana crates use the published SDK 0.10.0 releases (`spr-hasher`
+remains at 0.8.0). Unpublished test helpers use the `spr-client-v0.10.0` release
+tag and share the crates.io SDK through Cargo patches. Run the commands below
 from `swap/gnark/`.
 
 ```bash
@@ -95,7 +94,7 @@ The prover compiles Go gnark circuits, so building `prover`, `sdk` or `test`
 needs Go 1.27.3 or newer alongside Rust. The circuits import the
 `github.com/helius-labs/zolana/sdk-libs/gnark-sdk` and
 `github.com/helius-labs/zolana/prover/server/circuits/gadget` Go modules at
-`ca4cf4f`, which Go downloads through its module proxy
+release commit `c16997e`, which Go downloads through its module proxy
 ([`gnark/prover/circuits/go.mod`](gnark/prover/circuits/go.mod)). The Go bridge
 to Rust ships inside the `spr-gnark-ffi-prover-build` crate.
 
@@ -190,14 +189,12 @@ the fields:
 
 ### Build
 
-One Cargo workspace. Use Rust 1.95.0 (`rust-toolchain.toml`), Agave with SBF
-platform tools v1.54. The workspace pins Zolana
-[`ca4cf4f`](https://github.com/helius-labs/zolana/commit/ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08),
-the [`cli-v0.10.0`](https://github.com/helius-labs/zolana/releases/tag/cli-v0.10.0)
-release commit plus the fetchable gnark-sdk Go module, with the same SDK, and uses Xark [0.3.0](https://crates.io/crates/xark/0.3.0) from
-crates.io, the Xark release that Zolana revision depends on. The `zolana` CLI
+One Cargo workspace. Use Rust 1.98.1 (`rust-toolchain.toml`), Agave with SBF
+platform tools v1.54. The workspace uses Zolana SDK 0.10.0 and
+Xark [0.3.1](https://crates.io/crates/xark/0.3.1) from crates.io. Unpublished
+test helpers come from the `spr-client-v0.10.0` release tag. The `zolana` CLI
 is the `cli-v0.10.0` release binary, which includes Xark. The setup script
-checks that this workspace pins Zolana `ca4cf4f`, downloads the CLI for
+checks the workspace's SDK release pins, downloads the CLI for
 darwin-arm64 or linux-x64, checks it against the release's `SHA256SUMS` and
 installs it to `.tools/bin/zolana`. It prints `ZOLANA_CLI_BIN`;
 `scripts/setup-zk-tools.sh --check-pins` only checks the pins. Run the
