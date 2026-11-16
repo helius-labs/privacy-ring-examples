@@ -164,7 +164,7 @@ mod tests {
 
     /// A plain SOL UTXO of `owner` worth `amount`.
     fn wallet_source(owner: &ShieldedKeypair, amount: u64) -> SppProofInputUtxo {
-        crate::shared::test_input_utxo(
+        crate::test_utxo::wallet_utxo(
             Utxo {
                 owner: owner.signing_pubkey(),
                 asset: spr_transaction::Mint::SOL,
@@ -175,7 +175,9 @@ mod tests {
             },
             &owner.nullifier_key,
             OUTPUT_TREE_ID,
+            0,
         )
+        .into()
     }
 
     /// The params of a make that spends `source` into `order_utxo` and a

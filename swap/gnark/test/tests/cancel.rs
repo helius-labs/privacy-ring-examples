@@ -1,5 +1,6 @@
 use spr_transaction::utxo::SppProofInputUtxo;
 mod shared;
+#[path = "../../../../test-utils/utxo.rs"]
 mod utxo;
 
 use std::time::Duration;

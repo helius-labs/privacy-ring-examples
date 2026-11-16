@@ -1,31 +1,28 @@
-use std::time::{Duration, Instant};
-
 use anyhow::{anyhow, Result};
 use solana_address::Address;
 use solana_instruction::Instruction;
-use solana_pubkey::Pubkey;
 use solana_signature::Signature;
 use solana_signer::Signer;
-use spr_client::{ComputeBudgetConfig, MerkleProof, Rpc, SolanaRpc, UtxoScan};
+use spr_client::{ComputeBudgetConfig, Rpc, SolanaRpc};
 use spr_keypair::{ShieldedKeypair, SigningKey};
-use spr_program::instruction::{AssetDeposit, Deposit};
 use spr_program_test::{
     fixture,
     localnet::{FixtureLocalnet, LocalnetPorts},
     SprProgramTest,
 };
-use spr_transaction::{
-    utxo::SppProofInputUtxo, AssetRegistry, SpendableDecryptionResult, WalletUtxo,
-};
+use spr_transaction::{utxo::SppProofInputUtxo, AssetRegistry};
 use spr_user_registry_interface::user_registry_program_id;
 
 #[path = "../../../../test-utils/localnet.rs"]
 mod release_localnet;
+#[path = "../../../../test-utils/wallet.rs"]
+mod wallet;
+
+use wallet::deposit;
+pub use wallet::{wait_for_merkle_proof, TestWallet};
 
 // The whole per-transaction budget: a swap verifies an SPP proof and its own.
 const TRANSACT_COMPUTE_UNIT_LIMIT: u32 = 1_400_000;
-const INDEXER_TIMEOUT: Duration = Duration::from_secs(120);
-const POLL_INTERVAL: Duration = Duration::from_millis(500);
 
 // SPL the maker shields into the order UTXO (source), and SOL the taker pays (destination).
 pub const MAKER_SHIELD_SPL: u64 = 1_000_000_000;
@@ -46,35 +43,6 @@ pub struct TestEnv {
     pub spl_mint: Address,
 }
 
-pub struct TestWallet {
-    pub keypair: ShieldedKeypair,
-    pub registry: AssetRegistry,
-    spendable: SpendableDecryptionResult,
-}
-
-impl TestWallet {
-    /// Scan the indexer for the notes `keypair` can spend.
-    fn scan(keypair: ShieldedKeypair, registry: AssetRegistry, client: &impl Rpc) -> Result<Self> {
-        let spendable = UtxoScan::new(&keypair, &registry).fetch(client)?.spendable;
-        Ok(Self {
-            keypair,
-            registry,
-            spendable,
-        })
-    }
-
-    /// The first spendable default-ring note of `mint` worth at least
-    /// `min_amount`.
-    pub fn spendable_utxo(&self, mint: Address, min_amount: u64) -> Option<WalletUtxo> {
-        self.spendable
-            .balances
-            .get_balance(mint)?
-            .utxos
-            .iter()
-            .find(|utxo| utxo.utxo.ring_program_id.is_none() && utxo.utxo.amount >= min_amount)
-            .cloned()
-    }
-}
 /// Boot the localnet of test number `test` ([`LocalnetPorts::for_test`]); tests
 /// running in parallel take distinct numbers.
 pub fn setup(test: u16) -> Result<TestEnv> {
@@ -120,7 +88,7 @@ pub fn setup(test: u16) -> Result<TestEnv> {
     let maker_address = maker_shielded_keypair
         .shielded_address()
         .map_err(|e| anyhow!("maker address: {e:?}"))?;
-    let maker_signature = deposit(
+    deposit(
         &localnet,
         &payer,
         SprProgramTest::wallet_spl_shield_data(
@@ -133,20 +101,14 @@ pub fn setup(test: u16) -> Result<TestEnv> {
     let taker_address = taker_shielded_keypair
         .shielded_address()
         .map_err(|e| anyhow!("taker address: {e:?}"))?;
-    let taker_signature = deposit(
+    deposit(
         &localnet,
         &payer,
         SprProgramTest::wallet_sol_shield_data(DESTINATION_AMOUNT, &taker_address)?,
     )?;
 
-    // Both deposits are wallet-owned, so each wallet discovers its own
-    // through the indexer once it is indexed.
-    for signature in [maker_signature, taker_signature] {
-        localnet
-            .client
-            .confirm_private_transaction_sync(signature)
-            .map_err(|e| anyhow!("deposit {signature} indexed: {e:?}"))?;
-    }
+    // Both deposits are wallet-owned and indexed, so each wallet discovers
+    // its own through the indexer.
     let maker = TestWallet::scan(maker_shielded_keypair, assets.clone(), &localnet.client)
         .map_err(|e| anyhow!("scan maker deposit: {e:?}"))?;
     let maker_input = SppProofInputUtxo::from(
@@ -195,50 +157,4 @@ pub fn send(rpc: &SolanaRpc, payer: &dyn Signer, ix: Instruction) -> Result<Sign
         &[payer],
         ComputeBudgetConfig::new(TRANSACT_COMPUTE_UNIT_LIMIT),
     )?)
-}
-
-/// Send the proofless deposit `asset_deposit` from `payer`, which pays the fee
-/// and funds the deposit.
-fn deposit(
-    localnet: &FixtureLocalnet,
-    payer: &dyn Signer,
-    asset_deposit: AssetDeposit,
-) -> Result<Signature> {
-    let ix = Deposit {
-        tree: localnet.tree,
-        depositor: payer.pubkey(),
-        deposits: vec![asset_deposit],
-    }
-    .instruction()?;
-    Ok(localnet.client.rpc().create_and_send_transaction(
-        std::slice::from_ref(&ix),
-        payer.pubkey(),
-        &[payer],
-        ComputeBudgetConfig::for_instruction_count(1),
-    )?)
-}
-
-/// Poll the indexer until it serves the inclusion proof of `leaf` in `tree`.
-pub fn wait_for_merkle_proof(
-    indexer: &impl Rpc,
-    tree: Pubkey,
-    leaf: [u8; 32],
-) -> Result<MerkleProof> {
-    let started = Instant::now();
-    let mut last_error = None;
-    while started.elapsed() < INDEXER_TIMEOUT {
-        match indexer.get_merkle_proofs(tree, vec![leaf], None) {
-            Ok(response) => {
-                if let Some(proof) = response.proofs.into_iter().next() {
-                    return Ok(proof);
-                }
-            }
-            Err(error) => last_error = Some(error.to_string()),
-        }
-        std::thread::sleep(POLL_INTERVAL);
-    }
-    Err(anyhow!(
-        "timed out waiting for an indexed merkle proof; last indexer error: {}",
-        last_error.as_deref().unwrap_or("none")
-    ))
 }

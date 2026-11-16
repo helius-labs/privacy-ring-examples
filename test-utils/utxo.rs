@@ -1,24 +1,87 @@
-//! Transaction-building helpers shared by the swap, cancel and benchmark tests:
-//! output blindings, the transaction viewing key, output encryption and the
-//! nullifier keys a proof completes its inputs with.
+//! UTXO and transaction fixtures for the examples' tests, built on the
+//! published `spr-transaction` and `spr-keypair` crates: committed input
+//! UTXOs, output blindings, the transaction viewing key and output encryption.
+//!
+//! Include it with `#[path = ".../test-utils/utxo.rs"] mod utxo;`. It needs
+//! `anyhow`, `solana-address`, `spr-interface`, `spr-keypair` and
+//! `spr-transaction`.
+#![allow(dead_code)]
 
 use anyhow::{anyhow, Result};
-use num_bigint::BigUint;
-use spr_client::{ClientError, ProofAuthority, TransferInput};
+use solana_address::Address;
 use spr_interface::instruction::{OwnerTag, TransactOutput};
 use spr_keypair::{random_blinding, random_salt, NullifierKey, ShieldedKeypair, ViewingKey};
 use spr_transaction::{
-    instructions::transact::SppProofOutputUtxo,
+    instructions::transact::{ExternalData, SppProofInputs, SppProofOutputUtxo},
     serialization::{
         confidential::{Confidential, ConfidentialEncode, ConfidentialOutputPlaintext},
         UtxoSerialization,
     },
     utxo::{derive_output_blinding_seed, derive_transact_output_blinding, SppProofInputUtxo},
+    Utxo, WalletUtxo,
 };
 
+/// `utxo` as a wallet UTXO owned by `key`, committed at `leaf_index` of tree
+/// `tree_id` with no data or ring data hash.
+pub fn wallet_utxo(utxo: Utxo, key: &NullifierKey, tree_id: u16, leaf_index: u64) -> WalletUtxo {
+    let nullifier_pubkey = key.pubkey().expect("nullifier pubkey");
+    let utxo_hash = utxo
+        .hash(&nullifier_pubkey, &[0; 32], &[0; 32], tree_id)
+        .expect("input hash");
+    let nullifier = key
+        .nullifier(&utxo_hash, &utxo.blinding)
+        .expect("input nullifier");
+    WalletUtxo {
+        utxo,
+        nullifier_pubkey,
+        utxo_hash,
+        nullifier,
+        tx_viewing_key: None,
+        data_hash: None,
+        ring_data_hash: None,
+        tree_id,
+        leaf_index,
+        latest_tree_id: None,
+        slot: 0,
+        tx_signature: Default::default(),
+        slot_index: 0,
+    }
+}
+
+/// The proof inputs `sender` posts spending `input_utxos` into
+/// `output_utxos` under a random blinding seed and salt: each output blinding
+/// is derived from the first input's nullifier, and each output is encrypted
+/// to its owner and published under `output_tree_id`.
+pub fn test_transaction(
+    input_utxos: Vec<SppProofInputUtxo>,
+    mut output_utxos: Vec<SppProofOutputUtxo>,
+    sender: &ShieldedKeypair,
+    output_tree_id: u16,
+) -> SppProofInputs {
+    let blinding_seed =
+        prepare_output_blindings(&input_utxos, &mut output_utxos).expect("output blindings");
+    let tx = get_transaction_viewing_key(sender, &input_utxos).expect("transaction viewing key");
+    let encrypted =
+        encrypt_transaction_data(&output_utxos, &tx, output_tree_id).expect("encrypted outputs");
+    SppProofInputs {
+        input_utxos,
+        output_utxos,
+        blinding_seed,
+        output_tree_id,
+        external_data: ExternalData::new(
+            *tx.pubkey().as_bytes(),
+            encrypted.salt,
+            encrypted.outputs,
+            encrypted.resolved_owner_tags,
+            vec![],
+        ),
+        payer: Address::default(),
+        cache_accounts: Default::default(),
+    }
+}
+
 /// The outputs of a transaction encrypted to their owners, with what
-/// [`ExternalData::new`](spr_transaction::instructions::transact::ExternalData::new)
-/// takes besides the transaction viewing key.
+/// [`ExternalData::new`] takes besides the transaction viewing key.
 pub struct EncryptedTransactionData {
     pub salt: [u8; 16],
     pub output_utxos: Vec<SppProofOutputUtxo>,
@@ -111,32 +174,4 @@ pub fn encrypt_transaction_data(
         outputs: transact_outputs,
         resolved_owner_tags,
     })
-}
-
-/// Complete each input with the key whose nullifier it carries.
-// The cancel test spends only the order note, with the program's own key.
-#[allow(dead_code)]
-pub struct ProofKeys<'a>(pub &'a [&'a NullifierKey]);
-
-impl ProofAuthority for ProofKeys<'_> {
-    fn complete_inputs(&self, inputs: &mut [TransferInput]) -> Result<(), ClientError> {
-        for (index, input) in inputs.iter_mut().enumerate() {
-            if input.nullifier_secret.is_some() {
-                continue;
-            }
-            let hash = input.utxo.hash()?;
-            let key = self
-                .0
-                .iter()
-                .find(|key| {
-                    key.nullifier(&hash, &input.utxo.blinding)
-                        .is_ok_and(|nullifier| {
-                            BigUint::from_bytes_be(&nullifier) == input.nullifier
-                        })
-                })
-                .ok_or(ClientError::InputNullifierMismatch { index })?;
-            key.complete_inputs(std::slice::from_mut(input))?;
-        }
-        Ok(())
-    }
 }

@@ -120,11 +120,13 @@ mod tests {
             ring_program_id: None,
             data: Data::default(),
         };
-        let input_utxo = crate::shared::test_input_utxo(
+        let input_utxo = crate::test_utxo::wallet_utxo(
             input_utxo,
             &owner_keypair.nullifier_key,
             OUTPUT_TREE_ID,
-        );
+            0,
+        )
+        .into();
 
         let order_utxo = SppProofOutputUtxo {
             owner_address: Some(order_keypair.shielded_address().expect("order address")),
@@ -148,7 +150,7 @@ mod tests {
             input_utxo,
             SppProofInputUtxo::dummy(OUTPUT_TREE_ID).unwrap(),
         ];
-        let mut spp_proof_inputs = crate::shared::test_transaction(
+        let mut spp_proof_inputs = crate::test_utxo::test_transaction(
             input_utxos,
             vec![change, order_utxo],
             &owner_keypair,
@@ -249,11 +251,13 @@ mod tests {
             ring_program_id: None,
             data: Data::default(),
         };
-        let input_utxo = crate::shared::test_input_utxo(
+        let input_utxo = crate::test_utxo::wallet_utxo(
             input_utxo,
             &owner_keypair.nullifier_key,
             OUTPUT_TREE_ID,
-        );
+            0,
+        )
+        .into();
 
         let order_utxo = SppProofOutputUtxo {
             owner_address: Some(order_keypair.shielded_address().expect("order address")),
@@ -275,7 +279,7 @@ mod tests {
             input_utxo,
             SppProofInputUtxo::dummy(OUTPUT_TREE_ID).unwrap(),
         ];
-        let mut spp_proof_inputs = crate::shared::test_transaction(
+        let mut spp_proof_inputs = crate::test_utxo::test_transaction(
             input_utxos,
             vec![change, order_utxo],
             &owner_keypair,

@@ -1,5 +1,8 @@
 use spr_transaction::utxo::SppProofInputUtxo;
+#[path = "../../../../test-utils/proving.rs"]
+mod proving;
 mod shared;
+#[path = "../../../../test-utils/utxo.rs"]
 mod utxo;
 
 use std::time::Duration;
@@ -290,7 +293,7 @@ fn make_and_take_swap_inline() -> Result<()> {
             .indexer()
             .prove_transact(
                 take_spp_proof_inputs,
-                &utxo::ProofKeys(&[
+                &proving::ProofKeys(&[
                     &spr_keypair::NullifierKey::from_secret([0; 31]),
                     &taker.keypair.nullifier_key,
                 ]),

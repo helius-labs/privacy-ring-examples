@@ -4,6 +4,10 @@ pub mod prover;
 pub mod shared;
 pub mod state;
 
+#[cfg(test)]
+#[path = "../../../../test-utils/utxo.rs"]
+mod test_utxo;
+
 use solana_pubkey::Pubkey;
 pub use swap_program::{
     instructions::{

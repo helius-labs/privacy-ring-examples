@@ -1,3 +1,6 @@
+#[path = "../../../../test-utils/utxo.rs"]
+mod utxo;
+
 use groth16_solana::{
     decompression::{decompress_g1, decompress_g2},
     groth16::Groth16Verifier,
@@ -7,9 +10,7 @@ use solana_address::Address;
 use spr_keypair::{ShieldedAddress, ShieldedKeypair};
 use spr_transaction::{
     instructions::transact::PrivateTxHash,
-    utxo::{
-        derive_output_blinding_seed, derive_private_tx_blinding, derive_transact_output_blinding,
-    },
+    utxo::{derive_output_blinding_seed, derive_private_tx_blinding},
 };
 use swap_program::{
     instructions::{
@@ -86,9 +87,7 @@ fn params_for(taker: ShieldedAddress, designated_taker: Option<Address>) -> Take
         order_utxo.source_output(taker, fe(0)),
         order_utxo.destination_output(maker, fe(0)),
     ];
-    for (index, output) in (0u32..).zip(outputs.iter_mut()) {
-        output.blinding = derive_transact_output_blinding(&first_nullifier, &seed, index).unwrap();
-    }
+    utxo::assign_output_blindings(&mut outputs, &first_nullifier, &seed).unwrap();
     let [source_output, destination_output] = outputs;
     TakeProofInputParams {
         taker_in: order_utxo.destination_output(taker, fe(13)),

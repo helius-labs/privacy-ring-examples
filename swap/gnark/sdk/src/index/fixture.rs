@@ -122,7 +122,8 @@ pub(crate) fn order_fixture_with_destination(
         data: Data::default(),
     };
     let input_utxo =
-        crate::shared::test_input_utxo(input_utxo, &maker_keypair.nullifier_key, INDEXED_TREE_ID);
+        crate::test_utxo::wallet_utxo(input_utxo, &maker_keypair.nullifier_key, INDEXED_TREE_ID, 0)
+            .into();
     let input_utxos = vec![
         input_utxo,
         SppProofInputUtxo::dummy(INDEXED_TREE_ID).unwrap(),
@@ -137,7 +138,7 @@ pub(crate) fn order_fixture_with_destination(
         maker_address,
     )
     .expect("change output");
-    let mut spp_proof_inputs = crate::shared::test_transaction(
+    let mut spp_proof_inputs = crate::test_utxo::test_transaction(
         input_utxos,
         vec![change, order_output_utxo],
         &maker_keypair,
