@@ -3409,14 +3409,13 @@ dependencies = [
  "solana-signer",
  "solana-system-interface 3.3.0",
  "spl-token-interface",
- "spr-client 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-interface 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-keypair 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-program 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-program-test 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-test-utils",
- "spr-transaction 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-user-registry-interface 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spr-client",
+ "spr-interface",
+ "spr-keypair",
+ "spr-program",
+ "spr-program-test",
+ "spr-transaction",
+ "spr-user-registry-interface",
  "url",
 ]
 
@@ -5878,22 +5877,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_path_to_error",
- "spr-indexer-api 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio",
- "zeroize",
-]
-
-[[package]]
-name = "spr-api"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "http",
- "reqwest",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "spr-indexer-api 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
+ "spr-indexer-api",
  "tokio",
  "zeroize",
 ]
@@ -5934,71 +5918,18 @@ dependencies = [
  "solana-signer",
  "solana-transaction",
  "solana-transaction-status-client-types",
- "spr-api 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-event 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-event-parser 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-hasher 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-indexer-api 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-instruction 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-interface 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-keypair 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-prover-tee 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-transaction 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-tree 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-user-registry-interface 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror 2.0.21",
- "tokio",
- "url",
- "zeroize",
-]
-
-[[package]]
-name = "spr-client"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "async-trait",
- "base64 0.22.1",
- "bs58",
- "futures",
- "groth16-solana",
- "hex",
- "http",
- "httpdate",
- "num-bigint",
- "num-traits",
- "rand_core 0.9.5",
- "reqwest",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "solana-account 4.7.0",
- "solana-address 2.7.0",
- "solana-bn254",
- "solana-commitment-config",
- "solana-hash",
- "solana-instruction 3.5.1",
- "solana-keypair",
- "solana-message",
- "solana-pubkey 4.3.0",
- "solana-rpc-client",
- "solana-rpc-client-api",
- "solana-signature",
- "solana-signer",
- "solana-transaction",
- "solana-transaction-status-client-types",
- "spr-api 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-event 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-event-parser 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-hasher 0.8.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-indexer-api 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-instruction 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-interface 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-keypair 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-prover-tee 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-transaction 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-tree 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-user-registry-interface 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
+ "spr-api",
+ "spr-event",
+ "spr-event-parser",
+ "spr-hasher",
+ "spr-indexer-api",
+ "spr-instruction",
+ "spr-interface",
+ "spr-keypair",
+ "spr-prover-tee",
+ "spr-transaction",
+ "spr-tree",
+ "spr-user-registry-interface",
  "thiserror 2.0.21",
  "tokio",
  "url",
@@ -6016,15 +5947,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spr-event"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "borsh",
- "wincode",
-]
-
-[[package]]
 name = "spr-event-parser"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6032,19 +5954,8 @@ checksum = "0d64cba3b42368b96ad1f4910c29077a542516aeea25f248936f531d88519fb6"
 dependencies = [
  "borsh",
  "solana-pubkey 4.3.0",
- "spr-event 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-interface 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "spr-event-parser"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "borsh",
- "solana-pubkey 4.3.0",
- "spr-event 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-interface 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
+ "spr-event",
+ "spr-interface",
 ]
 
 [[package]]
@@ -6052,21 +5963,6 @@ name = "spr-hasher"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "586ea6741991290671566cd7125ed73a27028b0a81b6a5db63522fdee3d89e6d"
-dependencies = [
- "ark-bn254 0.6.0",
- "ark-ff 0.6.0",
- "light-poseidon 0.5.0",
- "num-bigint",
- "sha2 0.10.9",
- "sha3",
- "solana-program-error",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "spr-hasher"
-version = "0.8.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
 dependencies = [
  "ark-bn254 0.6.0",
  "ark-ff 0.6.0",
@@ -6093,19 +5989,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spr-indexer-api"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "base64 0.22.1",
- "bs58",
- "serde",
- "solana-pubkey 4.3.0",
- "solana-signature",
- "thiserror 2.0.21",
-]
-
-[[package]]
 name = "spr-instruction"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6114,22 +5997,8 @@ dependencies = [
  "solana-address 2.7.0",
  "solana-instruction 3.5.1",
  "solana-pubkey 4.3.0",
- "spr-hasher 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-interface 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror 2.0.21",
- "wincode",
-]
-
-[[package]]
-name = "spr-instruction"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "solana-address 2.7.0",
- "solana-instruction 3.5.1",
- "solana-pubkey 4.3.0",
- "spr-hasher 0.8.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-interface 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
+ "spr-hasher",
+ "spr-interface",
  "thiserror 2.0.21",
  "wincode",
 ]
@@ -6147,28 +6016,9 @@ dependencies = [
  "solana-address 2.7.0",
  "solana-program-error",
  "solana-pubkey 4.3.0",
- "spr-event 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-hasher 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-tree 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror 2.0.21",
- "wincode",
-]
-
-[[package]]
-name = "spr-interface"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "arrayvec",
- "borsh",
- "bytemuck",
- "groth16-solana",
- "solana-address 2.7.0",
- "solana-program-error",
- "solana-pubkey 4.3.0",
- "spr-event 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-hasher 0.8.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-tree 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
+ "spr-event",
+ "spr-hasher",
+ "spr-tree",
  "thiserror 2.0.21",
  "wincode",
 ]
@@ -6192,31 +6042,7 @@ dependencies = [
  "solana-address 2.7.0",
  "solana-keypair",
  "solana-signer",
- "spr-hasher 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror 2.0.21",
- "x25519-dalek",
- "zeroize",
-]
-
-[[package]]
-name = "spr-keypair"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "aes",
- "bs58",
- "ctr",
- "ed25519-dalek",
- "getrandom 0.2.17",
- "getrandom 0.3.4",
- "getrandom 0.4.3",
- "hkdf",
- "rand 0.8.7",
- "sha2 0.10.9",
- "solana-address 2.7.0",
- "solana-keypair",
- "solana-signer",
- "spr-hasher 0.8.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
+ "spr-hasher",
  "thiserror 2.0.21",
  "x25519-dalek",
  "zeroize",
@@ -6230,18 +6056,7 @@ checksum = "6821e9a5c499e6d517561a8d5c60f8b62234875cd7e407e3151bd049ad8a6b21"
 dependencies = [
  "num-bigint",
  "num-traits",
- "spr-hasher 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "spr-merkle-tree"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "num-bigint",
- "num-traits",
- "spr-hasher 0.8.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
+ "spr-hasher",
  "thiserror 2.0.21",
 ]
 
@@ -6252,21 +6067,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b64d761d15f9396f4bbbc6c50786fc55fea4bdd3237d93d639abc339e0b2da29"
 dependencies = [
  "solana-address 2.7.0",
- "spr-hasher 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-instruction 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-interface 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "wincode",
-]
-
-[[package]]
-name = "spr-program"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "solana-address 2.7.0",
- "spr-hasher 0.8.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-instruction 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-interface 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
+ "spr-hasher",
+ "spr-instruction",
+ "spr-interface",
  "wincode",
 ]
 
@@ -6292,52 +6095,17 @@ dependencies = [
  "solana-signer",
  "solana-transaction",
  "solana-transaction-error",
- "spr-client 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-event 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-event-parser 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-hasher 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-instruction 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-interface 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-keypair 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-merkle-tree 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-protocol-instructions 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-transaction 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-tree 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "spr-program-test"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "base64 0.22.1",
- "litesvm",
- "num-bigint",
- "sha2 0.10.9",
- "solana-account 4.7.0",
- "solana-address 2.7.0",
- "solana-clock 3.2.1",
- "solana-hash",
- "solana-instruction 3.5.1",
- "solana-keypair",
- "solana-message",
- "solana-pubkey 4.3.0",
- "solana-signature",
- "solana-signer",
- "solana-transaction",
- "solana-transaction-error",
- "spr-client 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-event 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-event-parser 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-hasher 0.8.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-instruction 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-interface 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-keypair 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-merkle-tree 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-protocol-instructions 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-transaction 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-tree 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
+ "spr-client",
+ "spr-event",
+ "spr-event-parser",
+ "spr-hasher",
+ "spr-instruction",
+ "spr-interface",
+ "spr-keypair",
+ "spr-merkle-tree",
+ "spr-protocol-instructions",
+ "spr-transaction",
+ "spr-tree",
  "thiserror 2.0.21",
 ]
 
@@ -6350,20 +6118,8 @@ dependencies = [
  "solana-address 2.7.0",
  "solana-instruction 3.5.1",
  "solana-pubkey 4.3.0",
- "spr-interface 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-tree 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "spr-protocol-instructions"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "solana-address 2.7.0",
- "solana-instruction 3.5.1",
- "solana-pubkey 4.3.0",
- "spr-interface 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-tree 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
+ "spr-interface",
+ "spr-tree",
 ]
 
 [[package]]
@@ -6392,82 +6148,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spr-prover-tee"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "aes-gcm",
- "ciborium",
- "ciborium-ll",
- "coset",
- "dcap-qvl",
- "ed25519-dalek",
- "form_urlencoded",
- "hex",
- "hpke",
- "p384",
- "rand_core 0.9.5",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.21",
- "x509-cert",
- "zeroize",
-]
-
-[[package]]
-name = "spr-smart-account-client"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "borsh",
- "solana-instruction 3.5.1",
- "solana-pubkey 4.3.0",
-]
-
-[[package]]
-name = "spr-test-utils"
-version = "0.1.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.22.1",
- "borsh",
- "bytemuck",
- "futures",
- "groth16-solana",
- "num-bigint",
- "rand 0.8.7",
- "solana-account 4.7.0",
- "solana-address 2.7.0",
- "solana-hash",
- "solana-instruction 3.5.1",
- "solana-instruction-error",
- "solana-keypair",
- "solana-message",
- "solana-pubkey 4.3.0",
- "solana-signature",
- "solana-signer",
- "solana-transaction",
- "solana-transaction-error",
- "spr-client 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-event 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-event-parser 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-hasher 0.8.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-interface 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-keypair 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-merkle-tree 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-program 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-program-test 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-protocol-instructions 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-smart-account-client",
- "spr-transaction 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-tree 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-user-registry-interface 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
-]
-
-[[package]]
 name = "spr-transaction"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6477,29 +6157,11 @@ dependencies = [
  "num-bigint",
  "solana-address 2.7.0",
  "solana-signature",
- "spr-event 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-hasher 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-instruction 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-interface 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-keypair 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror 2.0.21",
- "wincode",
-]
-
-[[package]]
-name = "spr-transaction"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "borsh",
- "num-bigint",
- "solana-address 2.7.0",
- "solana-signature",
- "spr-event 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-hasher 0.8.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-instruction 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-interface 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-keypair 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
+ "spr-event",
+ "spr-hasher",
+ "spr-instruction",
+ "spr-interface",
+ "spr-keypair",
  "thiserror 2.0.21",
  "wincode",
 ]
@@ -6513,23 +6175,8 @@ dependencies = [
  "borsh",
  "bytemuck",
  "groth16-solana",
- "spr-event 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spr-hasher 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror 2.0.21",
- "wincode",
- "zerocopy",
-]
-
-[[package]]
-name = "spr-tree"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
-dependencies = [
- "borsh",
- "bytemuck",
- "groth16-solana",
- "spr-event 0.10.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
- "spr-hasher 0.8.0 (git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0)",
+ "spr-event",
+ "spr-hasher",
  "thiserror 2.0.21",
  "wincode",
  "zerocopy",
@@ -6540,16 +6187,6 @@ name = "spr-user-registry-interface"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28e957882f4d42e202b9c8bcc1fa8740d1a4e5b93d88d5aeb2abe7e4982c80db"
-dependencies = [
- "borsh",
- "solana-instruction 3.5.1",
- "solana-pubkey 4.3.0",
-]
-
-[[package]]
-name = "spr-user-registry-interface"
-version = "0.10.0"
-source = "git+https://github.com/helius-labs/zolana?tag=spr-client-v0.10.0#c16997e04f804cc7fe09e69529b062788cd89dcc"
 dependencies = [
  "borsh",
  "solana-instruction 3.5.1",

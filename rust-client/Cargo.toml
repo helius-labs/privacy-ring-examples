@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
-# Use the published SDK. Its unpublished test helpers come from the release tag;
-# the patches below make those helpers use the same crates.io SDK types.
+# Use the published SDK.
 [dependencies]
 anyhow = "1.0"
 dotenvy = "0.15"
@@ -20,7 +19,6 @@ spr-client = { version = "0.10.0", features = ["solana-rpc"] }
 spr-interface = { version = "0.10.0" }
 spr-keypair = { version = "0.10.0" }
 spr-program = { version = "0.10.0" }
-spr-test-utils = { git = "https://github.com/helius-labs/zolana", tag = "spr-client-v0.10.0" }
 spr-transaction = { version = "0.10.0" }
 spr-user-registry-interface = { version = "0.10.0", features = ["solana"] }
 url = "2"
