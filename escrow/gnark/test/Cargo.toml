@@ -20,7 +20,6 @@ spr-client = { workspace = true, features = ["solana-rpc"] }
 spr-interface = { workspace = true }
 spr-keypair = { workspace = true }
 spr-program-test = { workspace = true, features = ["localnet"] }
-spr-test-utils = { workspace = true }
 spr-transaction = { workspace = true }
 
 [dev-dependencies]

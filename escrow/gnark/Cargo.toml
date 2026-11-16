@@ -6,7 +6,7 @@ members = ["program", "sdk", "prover", "test"]
 edition = "2021"
 
 # The Zolana crates use the published 0.10.0 SDK (spr-hasher stays at 0.8.0).
-# Unpublished test helpers and Go modules use the matching release source.
+# The Go modules use the matching release source.
 # Other crates match the versions the SDK builds against.
 [workspace.dependencies]
 spr-account-checks = { version = "0.10.0", default-features = false }
@@ -19,7 +19,6 @@ spr-keypair = { version = "0.10.0" }
 spr-merkle-tree = { version = "0.10.0" }
 spr-program = { version = "0.10.0" }
 spr-program-test = { version = "0.10.0" }
-spr-test-utils = { git = "https://github.com/helius-labs/zolana", tag = "spr-client-v0.10.0" }
 spr-transaction = { version = "0.10.0" }
 spr-tree = { version = "0.10.0" }
 

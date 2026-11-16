@@ -38,6 +38,10 @@
 mod bench_report;
 #[path = "../../../../test-utils/gnark_circuit_size.rs"]
 mod gnark_circuit_size;
+#[path = "../../../../test-utils/proving.rs"]
+mod proving;
+#[path = "../../../../test-utils/utxo.rs"]
+mod utxo;
 
 use std::{
     env, fs,
@@ -53,6 +57,7 @@ use gnark_circuit_size::circuit_size;
 use light_program_profiler::mollusk::{register_profiling_syscalls, take_profiling_entries};
 use mollusk_svm::{program::loader_keys::LOADER_V3, result::Check, Mollusk};
 use num_bigint::BigUint;
+use proving::{dummy_proofs, nullifier_tree, start_prover, ProofKeys};
 use solana_account::Account;
 use solana_address::Address;
 use solana_instruction::{AccountMeta, Instruction};
@@ -61,7 +66,7 @@ use solana_pubkey::Pubkey;
 use solana_signer::Signer;
 use spr_client::{
     transaction_size, ComputeBudgetConfig, MerkleContext, MerkleProof, NonInclusionProof,
-    ProverClient, ProverExt, SpendProof, NULLIFIER_TREE_HEIGHT, STATE_TREE_HEIGHT,
+    ProverClient, ProverExt, SpendProof, STATE_TREE_HEIGHT,
 };
 use spr_gnark_ffi_prover::Circuit;
 use spr_hasher::Poseidon;
@@ -75,12 +80,9 @@ use spr_interface::{
 };
 use spr_keypair::{random_blinding, ShieldedKeypair, SigningKey};
 use spr_merkle_tree::{indexed::IndexedMerkleTree, MerkleTree};
-use spr_test_utils::utxo::{
-    encrypt_transaction_data, get_transaction_viewing_key, prepare_output_blindings,
-};
 use spr_transaction::utxo::SppProofInputUtxo;
 use spr_transaction::{
-    instructions::transact::{ExternalData, SppProofInputs, SppProofOutputUtxo, BN254_MODULUS_DEC},
+    instructions::transact::{ExternalData, SppProofInputs, SppProofOutputUtxo},
     Data, Utxo,
 };
 use spr_tree::TreeAccount;
@@ -93,6 +95,9 @@ use timelock_escrow_sdk::{
     prover::EscrowProverClient,
     shared::input_sum,
     state::{EscrowTerms, EscrowUtxo},
+};
+use utxo::{
+    encrypt_transaction_data, get_transaction_viewing_key, prepare_output_blindings, wallet_utxo,
 };
 
 const PROFILING_SBF_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../target/bench");
@@ -192,17 +197,6 @@ fn local_state_tree(leaves: &[[u8; 32]]) -> MerkleTree<Poseidon> {
     tree
 }
 
-fn nullifier_tree() -> IndexedMerkleTree<Poseidon, usize> {
-    let modulus_minus_one =
-        BigUint::parse_bytes(BN254_MODULUS_DEC.as_bytes(), 10).expect("parse bn254 modulus") - 1u32;
-    IndexedMerkleTree::<Poseidon, usize>::new_with_next_value(
-        NULLIFIER_TREE_HEIGHT,
-        0,
-        modulus_minus_one,
-    )
-    .expect("nullifier tree")
-}
-
 fn build_spend_proofs(
     tree: &Pubkey,
     state_tree: &MerkleTree<Poseidon>,
@@ -296,14 +290,14 @@ fn prove_transact_warm(
     prover: &ProverClient,
     keys: &[&spr_keypair::NullifierKey],
 ) -> (TransactIxData, Duration) {
-    let dummy_proofs = spr_test_utils::utxo::dummy_proofs(&proof_inputs);
+    let dummy_proofs = dummy_proofs(&proof_inputs);
     let prove = || {
         prover
             .prove_transact(
                 proof_inputs.clone(),
                 spend_proofs,
                 &dummy_proofs,
-                &spr_test_utils::utxo::ProofKeys(keys),
+                &ProofKeys(keys),
             )
             .expect("prove transact")
     };
@@ -350,18 +344,6 @@ fn key_load_probe() {
             .expect("known circuit");
         PROVER.preload(circuit).expect("preload circuit keys");
     });
-}
-
-/// Start the shared prover using the configured keys directory.
-fn start_prover() {
-    if env::var_os("ZOLANA_PROVER_KEYS_DIR").is_none() {
-        let home = env::var("HOME").expect("HOME is set");
-        env::set_var(
-            "ZOLANA_PROVER_KEYS_DIR",
-            Path::new(&home).join(".config/zolana/proving-keys"),
-        );
-    }
-    spr_client::spawn_prover().expect("spawn prover");
 }
 
 /// The shielded pool program: `SHIELDED_POOL_PROGRAM_PATH`, else
@@ -503,16 +485,8 @@ fn bench_escrow(bench: &mut Bench) {
         ring_program_id: None,
         data: Data::default(),
     };
-    let input_utxo: SppProofInputUtxo = spr_test_utils::utxo::wallet(
-        input_utxo,
-        &creator.nullifier_key,
-        BENCH_TREE_ID,
-        0,
-        None,
-        None,
-    )
-    .expect("indexed input")
-    .into();
+    let input_utxo: SppProofInputUtxo =
+        wallet_utxo(input_utxo, &creator.nullifier_key, BENCH_TREE_ID, 0).into();
     let input_utxos = vec![
         input_utxo,
         SppProofInputUtxo::dummy_with_blinding(DUMMY_BLINDING, BENCH_TREE_ID).expect("dummy"),

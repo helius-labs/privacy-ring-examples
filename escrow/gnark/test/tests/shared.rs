@@ -7,13 +7,17 @@ use spr_keypair::{ShieldedKeypair, SigningKey};
 use spr_program_test::{
     fixture,
     localnet::{FixtureLocalnet, LocalnetPorts},
+    SprProgramTest,
 };
-use spr_test_utils::test_validator_asserts::wait_for_indexed_utxo;
-use spr_test_utils::wallet::{sync_wallet, Deposit, DepositParams, Wallet};
 use spr_transaction::{utxo::SppProofInputUtxo, AssetRegistry, WalletUtxo, SOL_MINT};
 
 #[path = "../../../../test-utils/localnet.rs"]
 mod release_localnet;
+#[path = "../../../../test-utils/wallet.rs"]
+mod wallet;
+
+use wallet::deposit;
+pub use wallet::{wait_for_merkle_proof, TestWallet};
 
 // The whole per-transaction budget: the escrow forwards an SPP transact.
 const TRANSACT_COMPUTE_UNIT_LIMIT: u32 = 1_400_000;
@@ -32,34 +36,16 @@ pub const UNLOCK_TIMESTAMP: u64 = 1_000_000;
 pub const SPP_RELAYER_DEADLINE: u64 = 2_000_000_000;
 
 // The creator is the only actor: one ed25519 identity whose signing key
-// doubles as the Solana fee payer (`to_solana_keypair`), holding the asset
-// registry and synced spendable notes.
+// doubles as the Solana fee payer, holding the asset registry and the
+// spendable notes its last scan found.
 pub struct TestEnv {
     /// The localnet with its client and default tree. Dropping it stops the
     /// validator, so it lives as long as the test.
     pub localnet: FixtureLocalnet,
-    /// The creator, its wallet synced after the deposit.
+    /// The creator, its wallet scanned after the deposit.
     pub creator: TestWallet,
     /// The shielded balance the escrow locks from, owned by the creator.
     pub creator_input: SppProofInputUtxo,
-}
-
-pub struct TestWallet {
-    pub wallet: Wallet,
-    pub keypair: ShieldedKeypair,
-}
-
-impl std::ops::Deref for TestWallet {
-    type Target = Wallet;
-    fn deref(&self) -> &Self::Target {
-        &self.wallet
-    }
-}
-
-impl std::ops::DerefMut for TestWallet {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.wallet
-    }
 }
 
 /// Boot the localnet of test number `test` ([`LocalnetPorts::for_test`]); tests
@@ -94,31 +80,19 @@ pub fn setup(test: u16) -> Result<TestEnv> {
 
     // Shield the creator's balance, which the escrow locks from: the creator
     // owns it and signs its spend.
-    let creator_deposit = Deposit::new(DepositParams {
-        recipient: &creator_address,
-        asset: SOL_MINT,
-        amount: SHIELD_AMOUNT,
-        spl_token_account: None,
-        spl_token_program: Some(spr_interface::pda::spl_token_program_id()),
-        memo: None,
-    })?;
-    let creator_view_tag = creator_deposit.view_tag();
-    let creator_signature =
-        creator_deposit.send(&localnet.client, &payer, localnet.tree, &payer)?;
-    wait_for_indexed_utxo(&localnet.client, creator_view_tag, creator_signature);
+    deposit(
+        &localnet,
+        &payer,
+        SprProgramTest::wallet_sol_shield_data(SHIELD_AMOUNT, &creator_address)?,
+    )?;
 
     // The creator's wallet reads the deposit back from the indexer.
-    let mut creator_wallet =
-        Wallet::new(creator_address, assets).map_err(|e| anyhow!("creator wallet: {e:?}"))?;
-    sync_wallet(
-        &mut creator_wallet,
-        &creator_shielded_keypair,
-        localnet.client.indexer(),
-    )
-    .map_err(|e| anyhow!("sync creator after deposit: {e:?}"))?;
-    let balance = creator_wallet
-        .balance(SOL_MINT, None)
-        .map_err(|e| anyhow!("creator balance: {e:?}"))?;
+    let creator = TestWallet::scan(creator_shielded_keypair, assets, localnet.client.indexer())
+        .map_err(|e| anyhow!("scan creator after deposit: {e:?}"))?;
+    let balance = creator
+        .balance(SOL_MINT)
+        .cloned()
+        .ok_or_else(|| anyhow!("the creator has no SOL balance"))?;
     let [creator_input]: [WalletUtxo; 1] = balance
         .utxos
         .try_into()
@@ -135,10 +109,7 @@ pub fn setup(test: u16) -> Result<TestEnv> {
 
     Ok(TestEnv {
         localnet,
-        creator: TestWallet {
-            wallet: creator_wallet,
-            keypair: creator_shielded_keypair,
-        },
+        creator,
         creator_input,
     })
 }

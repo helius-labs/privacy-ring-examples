@@ -6,6 +6,10 @@
 //! Needs `cargo build-sbf --manifest-path program/Cargo.toml -- --features
 //! bpf-entrypoint` first, which writes `target/deploy`.
 
+#[path = "../../../../test-utils/mollusk.rs"]
+mod mollusk;
+
+use mollusk::expect_err_exact;
 use mollusk_svm::Mollusk;
 use solana_account::Account;
 use solana_instruction::{AccountMeta, Instruction};
@@ -17,7 +21,6 @@ use spr_interface::{
     },
     N_PUBLIC_SLOTS, SHIELDED_POOL_PROGRAM_ID,
 };
-use spr_test_utils::mollusk::expect_err_exact;
 use timelock_escrow_program::{
     error::TimelockEscrowError,
     escrow_authority_seeds,
@@ -44,7 +47,7 @@ fn program_id() -> Pubkey {
 }
 
 fn setup_mollusk() -> Mollusk {
-    let (mut mollusk, _) = spr_test_utils::mollusk::mollusk_with_program(
+    let (mut mollusk, _) = mollusk::mollusk_with_program(
         SBF_DIR,
         *timelock_escrow_program::ID.as_array(),
         "timelock_escrow_program",
