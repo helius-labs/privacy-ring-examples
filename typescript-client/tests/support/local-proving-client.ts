@@ -1,23 +1,23 @@
 import assert from "node:assert/strict";
-
-import { createLocalProofService } from "@heliuslabs/zopro-spr";
+import { SprNodeProver, shapeByLabel } from "@heliuslabs/spr-web-prover/node";
 
 import { runDepositTransferWithdraw } from "../../examples/deposit_transfer_withdraw.js";
-import { countProofs, fetchWithoutProver } from "./local-proving.js";
+import { countLocalProofs, fetchWithoutProver } from "./local-proving.js";
 
-const proofs = await createLocalProofService({
+const proverUrl = "http://127.0.0.1:3001";
+const prover = new SprNodeProver({
+  proverUrl,
   threads: Number(process.env["ZOLANA_LOCAL_PROVING_THREADS"] ?? 4),
-  keyDirectory: process.env["ZOLANA_LOCAL_PROVING_KEYS_DIR"],
+  cacheDir: process.env["ZOLANA_LOCAL_PROVING_CACHE_DIR"],
+  gpu: "off",
+  fetch: fetchWithoutProver,
 });
-const counted = countProofs(proofs, [1, 2]);
+const counted = countLocalProofs(prover.createFetch());
 try {
-  await proofs.preload("transfer_confidential_1_2.key");
-  await runDepositTransferWithdraw({
-    proofService: counted,
-    fetch: fetchWithoutProver,
-  });
+  await prover.ensureKey(shapeByLabel("1x2"));
+  await runDepositTransferWithdraw({ proverUrl, fetch: counted.fetch });
   assert.equal(counted.proofCount, 2);
   console.log(`local_proving proofs=${counted.proofCount}`);
 } finally {
-  await proofs.close();
+  prover.terminate();
 }

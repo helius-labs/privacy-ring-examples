@@ -1,36 +1,27 @@
 import assert from "node:assert/strict";
 
-import type { ProofService } from "@heliuslabs/spr/client";
-
-export interface CountedProofService extends ProofService {
-  readonly proofCount: number;
-}
-
-export function countProofs(
-  proofs: ProofService,
-  transferShape?: readonly [number, number],
-): CountedProofService {
+/** Count successful intercepted requests and check the preloaded circuit shape. */
+export function countLocalProofs(localFetch: typeof fetch) {
   let count = 0;
   return {
     get proofCount() {
       return count;
     },
-    async prove(inputs, context) {
-      if (transferShape)
-        assert.deepEqual(
-          [inputs.payload.inputs.length, inputs.payload.outputs.length],
-          transferShape,
-          "the matching SPP key was decoded during setup",
-        );
-      const proof = await proofs.prove(inputs, context);
-      count++;
-      return proof;
-    },
-    async proveMerge(inputs, context) {
-      const proof = await proofs.proveMerge(inputs, context);
-      count++;
-      return proof;
-    },
+    fetch: (async (input, init) => {
+      const request = new Request(input, init);
+      if (!new URL(request.url).pathname.split("/").includes("prove"))
+        return localFetch(input, init);
+      const body = await request.clone().json();
+      assert.equal(body.circuitType, "transfer-confidential");
+      assert.deepEqual(
+        [body.nInputs, body.nOutputs],
+        [1, 2],
+        "the SPP key was decoded during setup",
+      );
+      const response = await localFetch(input, init);
+      if (response.ok) count++;
+      return response;
+    }) satisfies typeof fetch,
   };
 }
 

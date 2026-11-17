@@ -22,12 +22,14 @@ bash ../test-utils/setup-ts-local-prover.sh
 pnpm install
 ```
 
-`@heliuslabs/zopro-spr` is pinned to a Git commit and the
-`zopro/packages/spr-prover` subdirectory of `helius-labs/zk-tools`. pnpm builds
-its single and multithreaded WASM runtimes during installation. The setup script
-installs the required `nightly-2025-11-15` Rust toolchain, its WASM target and
-`rust-src`, and `wasm-bindgen-cli` 0.2.128. The exact Git artifact is allowed to
-run its build script in `pnpm-workspace.yaml`.
+`spr-prover.lock.json` pins zk-tools PR #12 at commit
+`50587b98ed99648d0323ad4b8a4a83c5735895d2`. The setup script checks out that
+source into `target/spr-prover-source`, builds `@heliuslabs/spr-web-prover`
+from `clients/spr-prover`, then pnpm installs the built package as a local
+`file:` dependency. No unpublished npm version or install-time build hook is
+required. The package's own `runtime.lock.json` independently pins its WASM
+runtime. Setup installs that runtime's Rust toolchain and wasm-bindgen version.
+Rerun setup before installing after changing the source pin.
 
 **Devnet:**
 
@@ -87,17 +89,18 @@ pnpm example examples/read_history.ts
 
 ## Prove locally in Node
 
-The local proving example uses the same `ProofService` input and output types
-as the SDK's server prover. `LocalKeys` sends complete typed inputs directly to
-the WASM prover. Solana RPC and Photon supply chain and Merkle data; no proof
-request leaves the process. The example configures
-`createLocalProofService` from `@heliuslabs/zopro-spr` and passes that service
-to the existing `LocalKeys` flow. Its integration test adds an HTTP proving
-guard and proof counter in `tests/support`, keeping those assertions out of
-the ordinary example.
-The example and its test harness preload `transfer_confidential_1_2.key`
-before client actions; preloading downloads, verifies and decodes the resident
-WASM key. The test checks that both actual proof requests have that shape.
+The example creates `SprNodeProver` from `@heliuslabs/spr-web-prover/node` and
+passes `prover.createFetch()` to the SDK. A loopback prover URL identifies the
+intercepted routes; no server listens there. The SDK gathers proof data from
+Photon (`proofDataSource: "client"`); WASM generates and verifies the proof in
+Node worker threads. Solana RPC and indexer requests still use the network.
+The local client drops the remote TEE policy and uses the SDK's ordinary
+`client.proofService` and `LocalKeys` integration.
+
+The example preloads `shapeByLabel("1x2")` before client actions. The test-only
+HTTP guard rejects any proof request that escapes the local interceptor, and
+the counter checks the exact 1x2 circuit requests. Key downloads, digest checks,
+disk caching, key switching and worker cleanup belong to the prover package.
 
 Start the local stack without its prover, fund the configured CLI wallet with
 localnet SOL, and run:
@@ -112,12 +115,25 @@ pnpm example examples/local_proving.ts
 Use `ZOLANA_LOCAL_PROVING_THREADS=0` for single-threaded proving, or set it to a
 pool size from 1 to 64. This example selects four threads by default.
 
-The shared package owns its trusted production key catalog, shape selection,
-checksum verification, downloads, cache, serialized key switching and cleanup.
-Its catalog matches the SDK's compiled deployment pins and the CLI v0.10.0
-deployment. The first proof downloads the key for its circuit and shape; later
-calls reuse it. `ZOLANA_LOCAL_PROVING_KEYS_DIR` is passed as the package's optional
-`keyDirectory` setting; leave it unset to use the package's default cache.
+The bundled key set matches SDK 0.9.0-alpha and the CLI v0.10.0 deployment.
+`ZOLANA_LOCAL_PROVING_CACHE_DIR` overrides `cacheDir` (by default
+`~/.cache/spr-prover`). CPU proving is selected with `gpu: "off"`; the Node
+package also supports optional WebGPU acceleration.
+
+Run the real-proof smoke test without a validator or Photon:
+
+```bash
+pnpm test:local
+```
+
+The test scripts use `--test-isolation=none` so Node does not copy its test-child
+V8 flags into the prover’s worker threads. The prover isolates its own work in
+workers; the localnet runner also gives the validator and Photon separate ports.
+
+It uses a synthetic request fixture from the same pinned zk-tools commit,
+checks the pinned release's source-key digest and fresh proof randomization, and verifies
+that both proofs reuse the preloaded key. The Xark escrow runner and its full
+localnet flow are documented in [escrow/README.md](../escrow/README.md).
 
 ## Documentation
 

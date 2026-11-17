@@ -194,8 +194,8 @@ cargo test --release --locked -p timelock-escrow-test --test escrow
 [`typescript-client/tests/xark_escrow_local_proving.ts`](../typescript-client/tests/xark_escrow_local_proving.ts)
 deposits 0.5 SOL, locks 0.3 SOL through the Xark escrow program, then withdraws
 the escrow back to its creator. Both custom program proofs run in the generated
-Xark Node WASM module. The SPP proofs run through the Git-pinned
-`@heliuslabs/zopro-spr` TypeScript `ProofService`; the test generates two
+Xark Node WASM module. The SPP proofs run through the commit-pinned
+`@heliuslabs/spr-web-prover/node` worker through its SDK fetch interceptor; the test generates two
 randomized proofs for each transaction, submits one, and checks the program's
 accepted state transition and final 0.5 SOL private balance.
 
@@ -205,8 +205,8 @@ checks the four SPP proofs in the escrow flow were generated locally. No SPP pro
 is started. It also runs the normal TypeScript local-proving CLI and its
 shared base flow against the same stack; the latter uses a test-only
 HTTP guard and checks the example's two local SPP proofs.
-The normal example imports the shared factory directly; key management lives
-in `@heliuslabs/zopro-spr`.
+The normal example constructs `SprNodeProver` directly; key management lives
+in `@heliuslabs/spr-web-prover`.
 
 Setup preloads and decodes the SPP `transfer_confidential_1_2.key`, and the test
 asserts that its transfer requests use that shape. It also creates separate
@@ -224,7 +224,7 @@ bash scripts/test-typescript-local.sh
 
 The runner verifies the release's account snapshot, compiles the application
 WASM with `--single-threaded --wasm-target nodejs`, builds its SBF program,
-installs the Git-pinned SPP prover, and runs the new test file. The SPP prover
+builds and installs the commit-pinned SPP prover, and runs the new test file. The SPP prover
 uses up to four threads; `ZOLANA_LOCAL_PROVING_THREADS=0` selects its single-thread
 runtime. `ZOLANA_XARK_RPC_PORT`, `ZOLANA_XARK_PHOTON_PORT` and
 `ZOLANA_XARK_PROVER_PORT` move the test's private ports (18599, 18784 and 18001).

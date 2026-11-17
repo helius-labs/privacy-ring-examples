@@ -1,22 +1,28 @@
-import { createLocalProofService } from "@heliuslabs/zopro-spr";
+import {
+  SprNodeProver,
+  shapeByLabel,
+} from "@heliuslabs/spr-web-prover/node";
 
 import { runDepositTransferWithdraw } from "./deposit_transfer_withdraw.js";
 
-const proofs = await createLocalProofService({
+// This URL identifies the intercepted route; no prover server listens here.
+const proverUrl = "http://127.0.0.1:3001";
+const prover = new SprNodeProver({
+  proverUrl,
   threads: Number(
     process.env["ZOLANA_LOCAL_PROVING_THREADS"] ??
       4,
   ),
-  keyDirectory:
-    process.env["ZOLANA_LOCAL_PROVING_KEYS_DIR"],
+  cacheDir:
+    process.env["ZOLANA_LOCAL_PROVING_CACHE_DIR"],
+  gpu: "off",
 });
 try {
-  await proofs.preload(
-    "transfer_confidential_1_2.key",
-  );
+  await prover.ensureKey(shapeByLabel("1x2"));
   await runDepositTransferWithdraw({
-    proofService: proofs,
+    proverUrl,
+    fetch: prover.createFetch(),
   });
 } finally {
-  await proofs.close();
+  prover.terminate();
 }

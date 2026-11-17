@@ -87,7 +87,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: typescript-client/pnpm-lock.yaml
 
-      - name: Install local prover build tools
+      - name: Build the pinned spr-prover package
         run: bash ../test-utils/setup-ts-local-prover.sh
 
       - name: Install dependencies
@@ -95,6 +95,9 @@ jobs:
 
       - name: Check examples
         run: pnpm check
+
+      - name: Prove locally without a prover server
+        run: pnpm test:local
 
   swap-gnark:
     name: test / swap/gnark
@@ -301,7 +304,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: examples/typescript-client/pnpm-lock.yaml
 
-      - name: Install local prover build tools
+      - name: Build the pinned spr-prover package
         run: bash test-utils/setup-ts-local-prover.sh
 
       - name: Install TypeScript client dependencies

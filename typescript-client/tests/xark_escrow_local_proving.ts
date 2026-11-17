@@ -41,10 +41,13 @@ import {
   type ProgramWalletUtxo,
 } from "@heliuslabs/spr/program";
 import { AssetRegistry, Utxo } from "@heliuslabs/spr/transaction";
-import { createLocalProofService } from "@heliuslabs/zopro-spr";
+import { SprNodeProver, shapeByLabel } from "@heliuslabs/spr-web-prover/node";
 
 import { sendAndConfirmFactory } from "../src/lib.js";
-import { countProofs, fetchWithoutProver } from "./support/local-proving.js";
+import {
+  countLocalProofs,
+  fetchWithoutProver,
+} from "./support/local-proving.js";
 
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -230,13 +233,17 @@ test(
       withdrawCircuit.prover.free();
       withdrawCircuit.verifier.free();
     });
-    const local = await createLocalProofService({
+    const localProverUrl = "http://127.0.0.1:3001";
+    const local = new SprNodeProver({
+      proverUrl: localProverUrl,
+      gpu: "off",
+      fetch: fetchWithoutProver,
       threads: Number(process.env["ZOLANA_LOCAL_PROVING_THREADS"] ?? 4),
-      keyDirectory: process.env["ZOLANA_LOCAL_PROVING_KEYS_DIR"],
+      cacheDir: process.env["ZOLANA_LOCAL_PROVING_CACHE_DIR"],
     });
-    t.after(() => local.close());
-    await local.preload("transfer_confidential_1_2.key");
-    const counted = countProofs(local, [1, 2]);
+    t.after(() => local.terminate());
+    await local.ensureKey(shapeByLabel("1x2"));
+    const counted = countLocalProofs(local.createFetch());
 
     const cli =
       process.env["ZOLANA_CLI_BIN"] ?? resolve(xarkRoot, ".tools/bin/zolana");
@@ -296,14 +303,14 @@ test(
     const client = await createSprClient({
       solanaRpcUrl: `http://127.0.0.1:${rpcPort}`,
       indexerUrl: `http://127.0.0.1:${photonPort}`,
-      proverUrl: `http://127.0.0.1:${proverPort}`,
+      proverUrl: localProverUrl,
       proofDataSource: "client",
-      fetch: fetchWithoutProver,
+      fetch: counted.fetch,
     });
     const proofService: ProofService = {
       async prove(inputs, context) {
-        const first = await counted.prove(inputs, context);
-        const second = await counted.prove(inputs, context);
+        const first = await client.proofService.prove(inputs, context);
+        const second = await client.proofService.prove(inputs, context);
         for (const point of ["a", "b", "c"] as const) {
           assert.notDeepEqual(
             first[point],
@@ -313,7 +320,8 @@ test(
         }
         return first;
       },
-      proveMerge: (inputs, context) => counted.proveMerge(inputs, context),
+      proveMerge: (inputs, context) =>
+        client.proofService.proveMerge(inputs, context),
     };
     const signingKey = SigningKey.generate();
     const creator = ShieldedKeypair.fromKeypair(signingKey);

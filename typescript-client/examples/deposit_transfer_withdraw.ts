@@ -6,7 +6,6 @@ import {
 import {
   LocalKeys,
   atSlot,
-  type ProofService,
 } from "@heliuslabs/spr/client";
 import { pathToFileURL } from "node:url";
 import {
@@ -35,16 +34,23 @@ const WITHDRAW_AMOUNT = 3_000_000n;
 
 export async function runDepositTransferWithdraw(
   options: {
-    readonly proofService?: ProofService;
+    readonly proverUrl?: string;
     readonly fetch?: typeof fetch;
   } = {},
 ): Promise<void> {
   const { clientConfig } = await setup();
+  const { proverTee, ...withoutRemotePolicy } =
+    clientConfig;
 
   // Read Solana and Photon through the client; LocalKeys chooses the proof service.
   const client = await createSprClient({
-    ...clientConfig,
-    ...(options.proofService
+    ...(options.proverUrl
+      ? withoutRemotePolicy
+      : clientConfig),
+    ...(options.proverUrl
+      ? { proverUrl: options.proverUrl }
+      : {}),
+    ...(options.proverUrl
       ? { proofDataSource: "client" }
       : {}),
     ...(options.fetch
@@ -63,7 +69,7 @@ export async function runDepositTransferWithdraw(
   const senderAddress = sender.shieldedAddress();
   const senderKeys = LocalKeys.fromKeypair(
     sender,
-    options.proofService ?? client.proofService,
+    client.proofService,
   );
 
   // The SDK hands back instructions; the app owns signing and sending.
