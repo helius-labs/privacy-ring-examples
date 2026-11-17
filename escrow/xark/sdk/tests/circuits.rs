@@ -2,6 +2,8 @@
 //! `target/zk/timelock-escrow-program`, built by `zolana zk compile --test`.
 mod escrow_circuit;
 mod shared;
+#[path = "../../../../test-utils/utxo.rs"]
+mod utxo;
 mod withdraw_circuit;
 
 #[test]

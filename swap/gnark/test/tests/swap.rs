@@ -1,21 +1,21 @@
-use spr_test_utils::utxo::{
-    encrypt_transaction_data, get_transaction_viewing_key, prepare_output_blindings,
-};
 use spr_transaction::utxo::SppProofInputUtxo;
+#[path = "../../../../test-utils/proving.rs"]
+mod proving;
 mod shared;
+#[path = "../../../../test-utils/utxo.rs"]
+mod utxo;
 
 use std::time::Duration;
 
 use anyhow::{anyhow, Result};
-use shared::{send, setup, TestEnv, DESTINATION_AMOUNT, SOURCE_AMOUNT};
+use shared::{send, setup, wait_for_merkle_proof, TestEnv, DESTINATION_AMOUNT, SOURCE_AMOUNT};
 use solana_instruction::Instruction;
 use solana_pubkey::Pubkey;
 use spr_client::user_registry::ensure_registered;
 use spr_client::Rpc;
 use spr_keypair::random_blinding;
-use spr_test_utils::wallet::Filter;
 use spr_transaction::{
-    instructions::transact::{ExternalData, SppProofInputs, SppProofOutputUtxo},
+    instructions::transact::{SppProofInputs, SppProofOutputUtxo},
     SOL_ASSET_ID, SOL_MINT,
 };
 use swap_sdk::{
@@ -29,6 +29,7 @@ use swap_sdk::{
     shared::input_sum,
     state::{OrderTerms, OrderUtxo},
 };
+use utxo::{encrypt_transaction_data, get_transaction_viewing_key, prepare_output_blindings};
 
 const EXPIRY: u64 = 2_000_000_000;
 
@@ -121,28 +122,18 @@ fn make_and_take_swap_inline() -> Result<()> {
         let transaction_viewing_key = get_transaction_viewing_key(&maker.keypair, &input_utxos)
             .map_err(|e| anyhow!("transaction viewing key: {e:?}"))?;
 
-        let encoded_transaction_data = encrypt_transaction_data(
-            &[change.clone(), order_output_utxo],
-            &transaction_viewing_key,
-            localnet.tree_id,
-        )?;
-
-        let marker_message = OrderMarker {
+        let output_utxos = vec![change.clone(), order_output_utxo];
+        let mut external_data =
+            encrypt_transaction_data(&output_utxos, &transaction_viewing_key, localnet.tree_id)?;
+        external_data.messages = vec![OrderMarker {
             order_utxo_hash,
             maker_pubkey: maker_address.solana_address()?,
             taker_address,
         }
-        .message()?;
-        let external_data = ExternalData::new(
-            *transaction_viewing_key.pubkey().as_bytes(),
-            encoded_transaction_data.salt,
-            encoded_transaction_data.outputs,
-            encoded_transaction_data.resolved_owner_tags,
-            vec![marker_message],
-        );
+        .message()?];
         let spp_proof_inputs = SppProofInputs {
             input_utxos,
-            output_utxos: encoded_transaction_data.output_utxos,
+            output_utxos,
             external_data,
             payer: maker_address.solana_address()?,
             blinding_seed,
@@ -177,7 +168,7 @@ fn make_and_take_swap_inline() -> Result<()> {
         }
         .instruction()?;
 
-        let make_signature = send(localnet.client.rpc(), &maker.keypair, make_ix)?;
+        let make_signature = send(localnet.client.rpc(), &[&maker.keypair], make_ix)?;
         localnet
             .client
             .confirm_private_transaction_sync(make_signature)
@@ -199,13 +190,7 @@ fn make_and_take_swap_inline() -> Result<()> {
         let terms = order_utxo.terms.clone();
 
         let taker_input_utxo = taker
-            .balance(
-                terms.destination_mint,
-                Some(Filter::MinAmount(terms.destination_amount)),
-            )?
-            .utxos
-            .first()
-            .cloned()
+            .spendable_utxo(terms.destination_mint, terms.destination_amount)
             .ok_or_else(|| {
                 anyhow!(
                     "no spendable utxo of {} >= {}",
@@ -220,11 +205,8 @@ fn make_and_take_swap_inline() -> Result<()> {
         let order_hash = order_utxo
             .output_utxo(taker_address.viewing_pubkey)?
             .hash(localnet.tree_id)?;
-        let order_state = spr_test_utils::test_validator_asserts::wait_for_merkle_proof(
-            localnet.client.indexer(),
-            localnet.tree,
-            order_hash,
-        );
+        let order_state =
+            wait_for_merkle_proof(localnet.client.indexer(), localnet.tree, order_hash)?;
         let order_input_utxo = order_utxo
             .to_input_utxo(localnet.tree_id, order_state.leaf_index)
             .map_err(|e| anyhow!("order input_utxo: {e:?}"))?;
@@ -237,11 +219,7 @@ fn make_and_take_swap_inline() -> Result<()> {
             .ok_or_else(|| anyhow!("missing order input"))?
             .nullifier();
         let seed = spr_transaction::derive_output_blinding_seed(&first_nullifier, &blinding_seed)?;
-        spr_test_utils::utxo::assign_output_blindings(
-            &mut transaction_outputs,
-            &first_nullifier,
-            &seed,
-        )?;
+        utxo::assign_output_blindings(&mut transaction_outputs, &first_nullifier, &seed)?;
         let [source_output, destination_output]: [_; 2] = transaction_outputs
             .try_into()
             .map_err(|_| anyhow!("take transaction must have two outputs"))?;
@@ -255,14 +233,12 @@ fn make_and_take_swap_inline() -> Result<()> {
         let transaction_viewing_key = get_transaction_viewing_key(&taker.keypair, &inputs)
             .map_err(|e| anyhow!("transaction viewing key: {e:?}"))?;
 
-        let mut encoded = encrypt_transaction_data(
-            &[source_output.clone(), destination_output.clone()],
-            &transaction_viewing_key,
-            localnet.tree_id,
-        )?;
+        let output_utxos = vec![source_output.clone(), destination_output.clone()];
+        let mut external_data =
+            encrypt_transaction_data(&output_utxos, &transaction_viewing_key, localnet.tree_id)?;
 
         // Recovery must work even when the taker withholds the maker payload.
-        encoded
+        external_data
             .outputs
             .get_mut(1)
             .ok_or_else(|| anyhow!("missing maker payout"))?
@@ -270,17 +246,10 @@ fn make_and_take_swap_inline() -> Result<()> {
         let recovered = order_utxo.derived_destination_output(&first_nullifier)?;
         assert_eq!(recovered.hash(localnet.tree_id)?, destination_output_hash);
 
-        let mut external_data = ExternalData::new(
-            *transaction_viewing_key.pubkey().as_bytes(),
-            encoded.salt,
-            encoded.outputs,
-            encoded.resolved_owner_tags,
-            vec![],
-        );
         external_data.expiry_unix_ts = terms.expiry;
         let take_spp_proof_inputs = SppProofInputs {
             input_utxos: inputs,
-            output_utxos: encoded.output_utxos,
+            output_utxos,
             external_data,
             payer: taker_address.solana_address()?,
             blinding_seed,
@@ -305,7 +274,7 @@ fn make_and_take_swap_inline() -> Result<()> {
             .indexer()
             .prove_transact(
                 take_spp_proof_inputs,
-                &spr_test_utils::utxo::ProofKeys(&[
+                &proving::ProofKeys(&[
                     &spr_keypair::NullifierKey::from_secret([0; 31]),
                     &taker.keypair.nullifier_key,
                 ]),
@@ -328,8 +297,12 @@ fn make_and_take_swap_inline() -> Result<()> {
             spp_proof: spp_proof.clone(),
         }
         .instruction()?;
-        let wrong_maker_error = send(localnet.client.rpc(), &taker.keypair, wrong_maker_take_ix)
-            .expect_err("a take naming the wrong maker must be rejected");
+        let wrong_maker_error = send(
+            localnet.client.rpc(),
+            &[&taker.keypair],
+            wrong_maker_take_ix,
+        )
+        .expect_err("a take naming the wrong maker must be rejected");
         assert!(
             format!("{wrong_maker_error:?}").contains("TransactProofVerificationFailed"),
             "SPP must reject the wrong maker's PDA as the order owner: {wrong_maker_error:?}"
@@ -348,14 +321,14 @@ fn make_and_take_swap_inline() -> Result<()> {
         // of the maker, which does not own the order input, so SPP's transact
         // proof fails to verify.
         let non_canonical_ix = with_non_canonical_authority_bump(take_ix.clone(), &maker)?;
-        let non_canonical_error = send(localnet.client.rpc(), &taker.keypair, non_canonical_ix)
+        let non_canonical_error = send(localnet.client.rpc(), &[&taker.keypair], non_canonical_ix)
             .expect_err("a take with a non-canonical authority bump must be rejected");
         assert!(
             format!("{non_canonical_error:?}").contains("TransactProofVerificationFailed"),
             "SPP must reject the non-canonical PDA as the order owner: {non_canonical_error:?}"
         );
 
-        let take_signature = send(localnet.client.rpc(), &taker.keypair, take_ix)?;
+        let take_signature = send(localnet.client.rpc(), &[&taker.keypair], take_ix)?;
         localnet
             .client
             .confirm_private_transaction_sync(take_signature)

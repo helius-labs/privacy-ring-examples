@@ -1,12 +1,9 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use rust_client_example::{asset_registry, cli_keypair, setup};
 use solana_keypair::Keypair;
-use spr_client::{SolanaRpc, SprClient};
+use spr_client::{SolanaRpc, SprClient, UtxoScan};
 use spr_keypair::ShieldedKeypair;
-// The stateful wallet, with its transaction history, lives in spr-test-utils.
-use spr_test_utils::wallet::{
-    sync_wallet_with_config, PrivateTransaction, SyncWalletConfig, Wallet,
-};
+use spr_transaction::HistoryEntry;
 
 fn main() -> Result<()> {
     let context = setup()?;
@@ -14,35 +11,29 @@ fn main() -> Result<()> {
     run(&client, &cli_keypair()?).map(|_| ())
 }
 
-pub fn run(client: &SprClient<SolanaRpc>, payer: &Keypair) -> Result<Vec<PrivateTransaction>> {
+/// The sender's history, newest first: one entry per asset each transaction
+/// moved.
+pub fn run(client: &SprClient<SolanaRpc>, payer: &Keypair) -> Result<Vec<HistoryEntry>> {
     // Initialize the sender's private wallet and local authority
-    // to decrypt transactions and sync balances.
+    // to decrypt transactions and read its history.
     // The Solana signer and private wallet are derived from the same Ed25519 seed.
     let sender = ShieldedKeypair::from_keypair(payer)?;
     let assets = asset_registry(client)?;
 
-    // Sync all transaction pages and resolve SPL asset registrations.
-    let mut wallet = Wallet::new(sender.shielded_address()?, assets)
-        .map_err(|e| anyhow!("create wallet: {e:?}"))?;
-    let report = sync_wallet_with_config(
-        &mut wallet,
-        &sender,
-        client,
-        SyncWalletConfig {
-            page_limit: 50,
-            ..SyncWalletConfig::default()
-        },
-    )?;
+    // Fetch the transactions that created or spent the wallet's UTXOs and
+    // classify what each one did to its balance.
+    let history = UtxoScan::new(&sender, &assets).fetch(client)?.history;
     anyhow::ensure!(
-        report.unknown_asset_ids.is_empty() && report.unknown_mints.is_empty(),
+        history.unknown_asset_ids.is_empty() && history.unknown_mints.is_empty(),
         "could not resolve SPL asset registrations"
     );
 
-    for tx in wallet.private_transactions() {
+    let entries = history.entries();
+    for entry in &entries {
         println!(
-            "ok kind={:?} direction={:?} mint={} amount={} tx={}",
-            tx.kind, tx.direction, tx.asset, tx.amount, tx.id.signature,
+            "ok kind={:?} mint={} amount={} tx={}",
+            entry.kind, entry.mint, entry.amount, entry.tx_signature,
         );
     }
-    Ok(wallet.private_transactions().to_vec())
+    Ok(entries)
 }

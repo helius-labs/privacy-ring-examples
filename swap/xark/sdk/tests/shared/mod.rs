@@ -161,7 +161,7 @@ pub fn order_utxo(terms: OrderTerms) -> OrderUtxo {
 
 /// `amount` of `mint` owned by `owner`, at leaf 6 of [`INPUT_TREE_ID`].
 pub fn wallet_utxo(owner: &ShieldedKeypair, mint: Mint, amount: u64) -> WalletUtxo {
-    spr_test_utils::utxo::wallet(
+    crate::utxo::wallet_utxo(
         Utxo {
             owner: owner.signing_pubkey(),
             asset: mint,
@@ -173,10 +173,7 @@ pub fn wallet_utxo(owner: &ShieldedKeypair, mint: Mint, amount: u64) -> WalletUt
         &owner.nullifier_key,
         INPUT_TREE_ID,
         6,
-        None,
-        None,
     )
-    .unwrap()
 }
 
 /// The order UTXO address a make by `maker` encrypted to `taker` uses: the

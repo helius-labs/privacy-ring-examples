@@ -48,7 +48,7 @@ fn artifact_checksum(id: CircuitId, artifact: &str) -> Result<[u8; 32]> {
         .with_context(|| format!("no checksum for {filename}; regenerate the escrow artifacts"))?;
     ensure!(digest.len() == 64, "invalid escrow artifact checksum");
     let mut bytes = [0; 32];
-    for (byte, pair) in bytes.iter_mut().zip(digest.as_bytes().chunks_exact(2)) {
+    for (byte, pair) in bytes.iter_mut().zip(digest.as_bytes().as_chunks::<2>().0) {
         *byte = u8::from_str_radix(std::str::from_utf8(pair)?, 16)?;
     }
     Ok(bytes)

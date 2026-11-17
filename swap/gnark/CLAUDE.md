@@ -63,9 +63,13 @@ instructions, and circuits.
 - sdk: `spr-client`, `spr-keypair`, `spr-transaction`,
   `solana-instruction`/`solana-address` for wire types, plus the program and
   prover crates.
-- test: `spr-program-test` + `spr-test-utils` for the harness,
+- test: `spr-program-test` for the localnet harness,
   `spr-client` (+`indexer-api`, `solana-rpc`), `mollusk-svm` +
   `light-program-profiler` for benchmarks.
+- No crate depends on an unpublished Zolana crate, not even as a dev
+  dependency. Test helpers built on the published crates live in the
+  repository's `test-utils/` (`mollusk.rs`, `utxo.rs`, `proving.rs`,
+  `wallet.rs`), which the tests include with `#[path]`.
 
 ## Key Artifacts
 

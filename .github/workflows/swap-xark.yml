@@ -7,6 +7,10 @@ on:
       - "swap/xark/**"
       - "swap/swap_program.md"
       - "test-utils/bench_report.rs"
+      - "test-utils/mollusk.rs"
+      - "test-utils/proving.rs"
+      - "test-utils/utxo.rs"
+      - "test-utils/wallet.rs"
       - "test-utils/xark_proving.rs"
       - "test-utils/zolana-release.sh"
       - ".github/workflows/swap-xark.yml"
@@ -15,6 +19,10 @@ on:
       - "swap/xark/**"
       - "swap/swap_program.md"
       - "test-utils/bench_report.rs"
+      - "test-utils/mollusk.rs"
+      - "test-utils/proving.rs"
+      - "test-utils/utxo.rs"
+      - "test-utils/wallet.rs"
       - "test-utils/xark_proving.rs"
       - "test-utils/zolana-release.sh"
       - ".github/workflows/swap-xark.yml"
@@ -44,7 +52,7 @@ jobs:
 
       # The Xark circuit build compiles the program crate for wasm32.
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.95.0
+        uses: dtolnay/rust-toolchain@1.98.1
         with:
           components: rustfmt, clippy
           targets: wasm32-unknown-unknown

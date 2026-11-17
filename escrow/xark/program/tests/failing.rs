@@ -2,6 +2,8 @@
 //! load the SBF program from `target/deploy`, so build it first:
 //! `cargo build-sbf --manifest-path program/Cargo.toml --tools-version v1.54 -- --features bpf-entrypoint`.
 mod common;
+#[path = "../../../../test-utils/mollusk.rs"]
+mod mollusk;
 
 #[path = "failing/dispatch.rs"]
 mod dispatch;

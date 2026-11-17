@@ -1,18 +1,17 @@
-use spr_test_utils::utxo::{
-    encrypt_transaction_data, get_transaction_viewing_key, prepare_output_blindings,
-};
 use spr_transaction::utxo::SppProofInputUtxo;
 mod shared;
+#[path = "../../../../test-utils/utxo.rs"]
+mod utxo;
 
 use std::time::Duration;
 
 use anyhow::{anyhow, Result};
-use shared::{send, setup, TestEnv, DESTINATION_AMOUNT, SOURCE_AMOUNT};
+use shared::{send, setup, wait_for_merkle_proof, TestEnv, DESTINATION_AMOUNT, SOURCE_AMOUNT};
 use spr_client::user_registry::ensure_registered;
 use spr_client::Rpc;
 use spr_keypair::random_blinding;
 use spr_transaction::{
-    instructions::transact::{ExternalData, SppProofInputs, SppProofOutputUtxo},
+    instructions::transact::{SppProofInputs, SppProofOutputUtxo},
     SOL_ASSET_ID, SOL_MINT,
 };
 use swap_sdk::{
@@ -25,6 +24,7 @@ use swap_sdk::{
     shared::input_sum,
     state::{OrderTerms, OrderUtxo},
 };
+use utxo::{encrypt_transaction_data, get_transaction_viewing_key, prepare_output_blindings};
 
 // The committed order expiry is already in the past, so the maker can cancel
 // immediately: the swap program requires `now > order_expiry`. The SPP relayer
@@ -112,23 +112,14 @@ fn make_and_cancel_swap_inline() -> Result<()> {
         let transaction_viewing_key = get_transaction_viewing_key(&maker.keypair, &input_utxos)
             .map_err(|e| anyhow!("make transaction viewing key: {e:?}"))?;
 
-        let encoded = encrypt_transaction_data(
-            &[change.clone(), order_output_utxo],
-            &transaction_viewing_key,
-            localnet.tree_id,
-        )
-        .map_err(|e| anyhow!("encode make slots: {e:?}"))?;
-
-        let external_data = ExternalData::new(
-            *transaction_viewing_key.pubkey().as_bytes(),
-            encoded.salt,
-            encoded.outputs,
-            encoded.resolved_owner_tags,
-            vec![marker_message],
-        );
+        let output_utxos = vec![change.clone(), order_output_utxo];
+        let mut external_data =
+            encrypt_transaction_data(&output_utxos, &transaction_viewing_key, localnet.tree_id)
+                .map_err(|e| anyhow!("encode make slots: {e:?}"))?;
+        external_data.messages = vec![marker_message];
         let spp_proof_inputs = SppProofInputs {
             input_utxos,
-            output_utxos: encoded.output_utxos,
+            output_utxos,
             external_data,
             payer: maker_address.solana_address()?,
             blinding_seed,
@@ -161,7 +152,7 @@ fn make_and_cancel_swap_inline() -> Result<()> {
         }
         .instruction()?;
 
-        let make_signature = send(localnet.client.rpc(), &maker.keypair, make_ix)?;
+        let make_signature = send(localnet.client.rpc(), &[&maker.keypair], make_ix)?;
         localnet
             .client
             .confirm_private_transaction_sync(make_signature)
@@ -187,11 +178,8 @@ fn make_and_cancel_swap_inline() -> Result<()> {
         let order_hash = order_utxo
             .output_utxo(maker_address.viewing_pubkey)?
             .hash(localnet.tree_id)?;
-        let order_state = spr_test_utils::test_validator_asserts::wait_for_merkle_proof(
-            localnet.client.indexer(),
-            localnet.tree,
-            order_hash,
-        );
+        let order_state =
+            wait_for_merkle_proof(localnet.client.indexer(), localnet.tree, order_hash)?;
         let order_input_utxo = order_utxo
             .to_input_utxo(localnet.tree_id, order_state.leaf_index)
             .map_err(|e| anyhow!("order input_utxo: {e:?}"))?;
@@ -216,24 +204,16 @@ fn make_and_cancel_swap_inline() -> Result<()> {
         let transaction_viewing_key = get_transaction_viewing_key(&maker.keypair, &input_utxos)
             .map_err(|e| anyhow!("cancel transaction viewing key: {e:?}"))?;
 
-        let encoded = encrypt_transaction_data(
+        let mut external_data = encrypt_transaction_data(
             std::slice::from_ref(&source_output),
             &transaction_viewing_key,
             localnet.tree_id,
         )
         .map_err(|e| anyhow!("encode cancel slots: {e:?}"))?;
-
-        let mut external_data = ExternalData::new(
-            *transaction_viewing_key.pubkey().as_bytes(),
-            encoded.salt,
-            encoded.outputs,
-            encoded.resolved_owner_tags,
-            vec![],
-        );
         external_data.expiry_unix_ts = SPP_RELAYER_DEADLINE;
         let cancel_spp_proof_inputs = SppProofInputs {
             input_utxos,
-            output_utxos: [encoded.output_utxos, vec![compact_output]].concat(),
+            output_utxos: vec![source_output.clone(), compact_output],
             external_data,
             payer: maker_address.solana_address()?,
             blinding_seed,
@@ -275,7 +255,7 @@ fn make_and_cancel_swap_inline() -> Result<()> {
         }
         .instruction()?;
 
-        let cancel_signature = send(localnet.client.rpc(), &maker.keypair, cancel_ix)?;
+        let cancel_signature = send(localnet.client.rpc(), &[&maker.keypair], cancel_ix)?;
         localnet
             .client
             .confirm_private_transaction_sync(cancel_signature)

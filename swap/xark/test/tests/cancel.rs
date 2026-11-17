@@ -3,9 +3,8 @@ mod shared;
 use std::time::Duration;
 
 use anyhow::{anyhow, Result};
-use shared::{send, setup, TestEnv, DESTINATION_AMOUNT, SOURCE_AMOUNT};
+use shared::{send, setup, wait_for_merkle_proof, TestEnv, DESTINATION_AMOUNT, SOURCE_AMOUNT};
 use spr_client::{user_registry::ensure_registered, Rpc};
-use spr_test_utils::test_validator_asserts::wait_for_merkle_proof;
 use spr_transaction::{Mint, SppProofOutputUtxo};
 use swap_sdk::{
     index::index_maker,
@@ -65,7 +64,7 @@ fn make_and_cancel_swap_inline() -> Result<()> {
     .build(&maker.keypair)?
     .prove(client.indexer(), localnet.tree, &maker.keypair)?
     .instruction()?;
-    let make_signature = send(client.rpc(), &maker.keypair, make_ix)?;
+    let make_signature = send(client.rpc(), &[&maker.keypair], make_ix)?;
     client
         .confirm_private_transaction_sync(make_signature)
         .map_err(|e| anyhow!("confirm make indexed: {e:?}"))?;
@@ -87,7 +86,7 @@ fn make_and_cancel_swap_inline() -> Result<()> {
         client.indexer(),
         localnet.tree,
         order_utxo.hash(localnet.tree_id)?,
-    );
+    )?;
     let cancel_transaction = CancelTransactionParams {
         order_utxo: order_utxo.clone(),
         order_leaf_index: order_state.leaf_index,
@@ -107,7 +106,7 @@ fn make_and_cancel_swap_inline() -> Result<()> {
     let cancel_ix = cancel_transaction
         .prove(client.indexer(), localnet.tree)?
         .instruction()?;
-    let cancel_signature = send(client.rpc(), &maker.keypair, cancel_ix)?;
+    let cancel_signature = send(client.rpc(), &[&maker.keypair], cancel_ix)?;
     client
         .confirm_private_transaction_sync(cancel_signature)
         .map_err(|e| anyhow!("confirm cancel indexed: {e:?}"))?;

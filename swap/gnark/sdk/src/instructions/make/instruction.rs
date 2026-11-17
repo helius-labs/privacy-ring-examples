@@ -81,7 +81,6 @@ impl Make {
 
 #[cfg(test)]
 mod tests {
-    use solana_address::Address;
     use solana_keypair::Keypair;
     use spr_keypair::shielded::ShieldedKeypair;
     use spr_transaction::{
@@ -121,15 +120,12 @@ mod tests {
             ring_program_id: None,
             data: Data::default(),
         };
-        let input_utxo = spr_test_utils::utxo::wallet(
+        let input_utxo = crate::test_utxo::wallet_utxo(
             input_utxo,
             &owner_keypair.nullifier_key,
             OUTPUT_TREE_ID,
             0,
-            None,
-            None,
         )
-        .unwrap()
         .into();
 
         let order_utxo = SppProofOutputUtxo {
@@ -154,14 +150,11 @@ mod tests {
             input_utxo,
             SppProofInputUtxo::dummy(OUTPUT_TREE_ID).unwrap(),
         ];
-        let mut spp_proof_inputs = spr_test_utils::utxo::finalized_transaction(
+        let mut spp_proof_inputs = crate::test_utxo::test_transaction(
             input_utxos,
             vec![change, order_utxo],
             &owner_keypair,
-            Address::default(),
             OUTPUT_TREE_ID,
-            spr_keypair::random_blinding(),
-            spr_keypair::random_salt(),
         );
         let order_utxo = spp_proof_inputs.output_utxos.get(1).expect("order output");
         let order_utxo_hash = order_utxo.hash(OUTPUT_TREE_ID).expect("order hash");
@@ -258,15 +251,12 @@ mod tests {
             ring_program_id: None,
             data: Data::default(),
         };
-        let input_utxo = spr_test_utils::utxo::wallet(
+        let input_utxo = crate::test_utxo::wallet_utxo(
             input_utxo,
             &owner_keypair.nullifier_key,
             OUTPUT_TREE_ID,
             0,
-            None,
-            None,
         )
-        .unwrap()
         .into();
 
         let order_utxo = SppProofOutputUtxo {
@@ -289,14 +279,11 @@ mod tests {
             input_utxo,
             SppProofInputUtxo::dummy(OUTPUT_TREE_ID).unwrap(),
         ];
-        let mut spp_proof_inputs = spr_test_utils::utxo::finalized_transaction(
+        let mut spp_proof_inputs = crate::test_utxo::test_transaction(
             input_utxos,
             vec![change, order_utxo],
             &owner_keypair,
-            Address::default(),
             OUTPUT_TREE_ID,
-            spr_keypair::random_blinding(),
-            spr_keypair::random_salt(),
         );
         let order_utxo = spp_proof_inputs.output_utxos.get(1).expect("order output");
         let order_utxo_hash = order_utxo.hash(OUTPUT_TREE_ID).expect("order hash");

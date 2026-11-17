@@ -40,12 +40,12 @@
 CI runs all five Rust and TypeScript client examples and the swap (take and
 cancel) and timelock escrow flows of both implementations: the gnark ones in
 the `examples` workflow and the Xark ones in `swap-xark` and `escrow-xark`.
-All Rust examples and the Rust client pin the Zolana crates as Git
-dependencies at one commit, `ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08`: the
-[`cli-v0.10.0`](https://github.com/helius-labs/zolana/releases/tag/cli-v0.10.0)
-release commit `357dd92` plus the fetchable gnark-sdk Go module, with the same
-SDK. No crates.io release matches the deployed 1.0 programs yet. The Xark
-implementations also pin Xark 0.3.0; see [`swap/README.md`](swap/README.md)
+All Rust examples and the Rust client use the published Zolana SDK 0.10.0
+crates; `spr-hasher` remains at 0.8.0. The tests use no unpublished Zolana
+crates: their shared helpers live in [`test-utils/`](test-utils/). The
+profiler stays at the release's Git revision because its published 0.1.1 lacks
+Mollusk support.
+The Xark implementations use Xark 0.3.1; see [`swap/README.md`](swap/README.md)
 and [`escrow/README.md`](escrow/README.md).
 The TypeScript client uses the npm release `@heliuslabs/spr@0.9.0-alpha`,
 which has the paged indexer API of the `cli-v0.10.0` Photon. It predates the
@@ -53,7 +53,7 @@ deployed 1.0 programs' per-tree fee defaults and user-registry `update_keys`
 data, which the examples do not use; a matching npm release replaces it.
 The gnark circuits fetch the Go modules
 `github.com/helius-labs/zolana/sdk-libs/gnark-sdk` and `prover/server` at the
-same commit. The integration tests run against the `cli-v0.10.0` release: its
+release commit `c16997e`. The integration tests run against the `cli-v0.10.0` release: its
 CLI is checked against the release's `SHA256SUMS`, and `zolana dev artifacts`
 downloads the prover, Photon and the deployed `shielded-pool-v1.0.0` program
 it pins and checks their SHA-256, and downloads surfpool and checks its

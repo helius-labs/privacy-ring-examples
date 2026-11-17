@@ -39,10 +39,7 @@ pub fn run_rust_examples(
     tree: Address,
     payer: &Keypair,
 ) -> Result<()> {
-    use spr_test_utils::wallet::{
-        PrivateTransactionDirection as Direction, PrivateTransactionKind as Kind,
-    };
-    use spr_transaction::SOL_MINT;
+    use spr_transaction::{HistoryKind as Kind, SOL_MINT};
 
     register_private_wallet::run(client, payer)?;
     deposit_transfer_withdraw::run(client, tree, payer)?;
@@ -56,27 +53,18 @@ pub fn run_rust_examples(
         (Some(4_000_000), Some(1_000_000_000)),
         "balance sync must recover both the SOL change and the deposited SPL tokens",
     );
+    // Newest first.
     let history = read_history::run(client, payer)?;
     assert_eq!(
         history
             .iter()
-            .map(|tx| (tx.kind, tx.direction, tx.asset, tx.amount))
+            .map(|entry| (entry.kind, entry.mint, entry.amount))
             .collect::<Vec<_>>(),
         vec![
-            (Kind::Deposit, Direction::Inbound, SOL_MINT, 10_000_000),
-            (
-                Kind::PrivateTransfer,
-                Direction::Outbound,
-                SOL_MINT,
-                3_000_000
-            ),
-            (
-                Kind::PublicWithdrawal,
-                Direction::Outbound,
-                SOL_MINT,
-                3_000_000
-            ),
-            (Kind::Deposit, Direction::Inbound, mint, 1_000_000_000),
+            (Kind::Deposit, mint, 1_000_000_000),
+            (Kind::Withdrawal, SOL_MINT, 3_000_000),
+            (Kind::Sent, SOL_MINT, 3_000_000),
+            (Kind::Deposit, SOL_MINT, 10_000_000),
         ],
         "history must recover every operation and both assets",
     );

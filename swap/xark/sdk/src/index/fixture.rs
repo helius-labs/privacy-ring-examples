@@ -86,7 +86,7 @@ pub(crate) fn order_fixture_with_destination(destination_mint: Mint) -> OrderFix
     registry.insert(2, source_mint).expect("register mint");
     let source_mint = registry.mint(&source_mint).expect("source mint");
 
-    let source = spr_test_utils::utxo::wallet(
+    let source = crate::test_utxo::wallet_utxo(
         Utxo {
             owner: maker_keypair.signing_pubkey(),
             asset: source_mint,
@@ -98,10 +98,7 @@ pub(crate) fn order_fixture_with_destination(destination_mint: Mint) -> OrderFix
         &maker_keypair.nullifier_key,
         INDEXED_TREE_ID,
         0,
-        None,
-        None,
-    )
-    .expect("source input");
+    );
     let terms = OrderTerms {
         destination_mint,
         destination_amount: 250_000,

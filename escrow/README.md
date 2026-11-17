@@ -83,15 +83,11 @@ method runs natively on the client, where it builds the SPP transaction, and
 compiles through Xark for proving. `zolana zk compile` generates the program's
 verifier of each circuit from its verifying key.
 
-The workspace uses Zolana
-[`ca4cf4f`](https://github.com/helius-labs/zolana/commit/ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08),
-the [`cli-v0.10.0`](https://github.com/helius-labs/zolana/releases/tag/cli-v0.10.0)
-release commit plus the fetchable gnark-sdk Go module, with the same SDK, and
-Xark [0.3.0](https://crates.io/crates/xark/0.3.0) from crates.io, the Xark
-release that Zolana revision depends on. Cargo pins Zolana to that Git
-revision, as the gnark implementation does. The `zolana` CLI is the
-`cli-v0.10.0` release binary, which includes Xark. The program ID is
-`42uWG786CJAdtdZy5KEEtE7QCuSHjVFu5ZAq32Z41hDD`.
+The workspace uses the published Zolana SDK 0.10.0 (`spr-hasher` remains at
+0.8.0) and Xark [0.3.1](https://crates.io/crates/xark/0.3.1) from crates.io.
+The tests share helpers from [`../test-utils/`](../test-utils/) with the gnark
+implementation. The `zolana` CLI is the `cli-v0.10.0` release binary, which
+includes Xark. The program ID is `42uWG786CJAdtdZy5KEEtE7QCuSHjVFu5ZAq32Z41hDD`.
 
 What differs from the gnark implementation, within the spec:
 
@@ -135,9 +131,9 @@ What differs from the gnark implementation, within the spec:
 
 ### Build
 
-Use Rust 1.95.0 (pinned in `xark/rust-toolchain.toml`, which fixes the compiler
+Use Rust 1.98.1 (pinned in `xark/rust-toolchain.toml`, which fixes the compiler
 that generates the checked bytecode) and Agave with SBF platform tools v1.54.
-The setup script checks that this workspace pins Zolana `ca4cf4f`, downloads
+The setup script checks the workspace's SDK release pins, downloads
 the `cli-v0.10.0` CLI for darwin-arm64 or linux-x64, checks it against the
 release's `SHA256SUMS` and installs it to `xark/.tools/bin/zolana`. It prints
 `ZOLANA_CLI_BIN`; `scripts/setup-zk-tools.sh --check-pins` only checks the

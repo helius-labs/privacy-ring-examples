@@ -1,6 +1,9 @@
 //! The make transaction the SDK builder produces: its SPP shape, the order of
 //! its outputs and its one message, the taker's marker. The program checks
 //! the marker and reads the order UTXO hash from `ORDER_SLOT`.
+
+#[path = "../../../../test-utils/utxo.rs"]
+mod utxo;
 use solana_keypair::Keypair;
 use spr_interface::{instruction::instruction_data::transact::MessageData, shape::Shape};
 use spr_keypair::ShieldedKeypair;
@@ -30,7 +33,7 @@ fn make_transaction_spends_one_source_into_change_then_order_with_one_marker() {
     let source_mint = Mint::new(solana_address::Address::new_from_array([3; 32]), 2);
     // A wallet UTXO of `source_mint` owned by the maker.
     let wallet = |amount, blinding| {
-        spr_test_utils::utxo::wallet(
+        utxo::wallet_utxo(
             Utxo {
                 owner: maker.signing_pubkey(),
                 asset: source_mint,
@@ -42,10 +45,7 @@ fn make_transaction_spends_one_source_into_change_then_order_with_one_marker() {
             &maker.nullifier_key,
             TREE_ID,
             0,
-            None,
-            None,
         )
-        .unwrap()
     };
     let source = wallet(SOURCE, [5; 32]);
     let terms = OrderTerms {

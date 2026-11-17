@@ -29,7 +29,6 @@ spr-transaction = { workspace = true }
 [dev-dependencies]
 groth16-solana = { workspace = true }
 solana-keypair = { workspace = true }
-spr-test-utils = { workspace = true }
 
 [[test]]
 name = "circuits"

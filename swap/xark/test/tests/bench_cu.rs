@@ -26,6 +26,10 @@
 //!   the bench (`key_load_probe`).
 #[path = "../../../../test-utils/bench_report.rs"]
 mod bench_report;
+#[path = "../../../../test-utils/proving.rs"]
+mod proving;
+#[path = "../../../../test-utils/utxo.rs"]
+mod utxo;
 #[path = "../../../../test-utils/xark_proving.rs"]
 mod xark_proving;
 
@@ -42,6 +46,7 @@ use bench_report::{
 use light_program_profiler::mollusk::{register_profiling_syscalls, take_profiling_entries};
 use mollusk_svm::{program::loader_keys::LOADER_V3, result::Check, Mollusk};
 use num_bigint::BigUint;
+use proving::{nullifier_tree, start_prover};
 use solana_account::Account;
 use solana_address::Address;
 use solana_instruction::{AccountMeta, Instruction};
@@ -50,7 +55,7 @@ use solana_pubkey::Pubkey;
 use solana_signer::Signer;
 use spr_client::{
     transaction_size, ComputeBudgetConfig, MerkleContext, MerkleProof, NonInclusionProof,
-    ProverClient, ProverExt, SpendProof, NULLIFIER_TREE_HEIGHT, STATE_TREE_HEIGHT,
+    ProverClient, ProverExt, SpendProof, STATE_TREE_HEIGHT,
 };
 use spr_hasher::Poseidon;
 use spr_interface::{
@@ -61,13 +66,10 @@ use spr_interface::{
     },
     SHIELDED_POOL_PROGRAM_ID,
 };
-use spr_keypair::{NullifierKey, ShieldedKeypair, SigningKey};
+use spr_keypair::{NullifierKey, ShieldedKeypair};
 use spr_merkle_tree::{indexed::IndexedMerkleTree, MerkleTree};
 use spr_program::{proof::compressed_proof, CompressedProof, ProgramOwner, ProgramProofInputs};
-use spr_transaction::{
-    instructions::transact::{SppProofInputs, BN254_MODULUS_DEC},
-    Data, Mint, Utxo, WalletUtxo,
-};
+use spr_transaction::{instructions::transact::SppProofInputs, Data, Mint, Utxo, WalletUtxo};
 use spr_tree::TreeAccount;
 use swap_sdk::{
     instructions::{
@@ -340,7 +342,7 @@ fn terms(maker: &ShieldedKeypair, taker: Option<&ShieldedKeypair>) -> OrderTerms
 
 /// `amount` lamports owned by `owner` at `leaf_index` of the fixture tree.
 fn wallet_utxo(owner: &ShieldedKeypair, amount: u64, leaf_index: u64) -> WalletUtxo {
-    spr_test_utils::utxo::wallet(
+    utxo::wallet_utxo(
         Utxo {
             owner: owner.signing_pubkey(),
             asset: Mint::SOL,
@@ -352,10 +354,7 @@ fn wallet_utxo(owner: &ShieldedKeypair, amount: u64, leaf_index: u64) -> WalletU
         &owner.nullifier_key,
         BENCH_TREE_ID,
         leaf_index,
-        None,
-        None,
     )
-    .expect("wallet utxo")
 }
 
 /// Replays `ix` under mollusk and collects its profile and sizes.
@@ -408,14 +407,14 @@ fn prove_spp(
     prover: &ProverClient,
     keys: &[&NullifierKey],
 ) -> (TransactIxData, Duration) {
-    let dummy_proofs = spr_test_utils::utxo::dummy_proofs(&proof_inputs);
+    let dummy_proofs = proving::dummy_proofs(&proof_inputs);
     warm_median(|| {
         prover
             .prove_transact(
                 proof_inputs.clone(),
                 spend_proofs,
                 &dummy_proofs,
-                &spr_test_utils::utxo::ProofKeys(keys),
+                &proving::ProofKeys(keys),
             )
             .expect("prove transact")
     })
@@ -571,17 +570,6 @@ fn local_state_tree(leaves: &[[u8; 32]]) -> MerkleTree<Poseidon> {
     tree
 }
 
-fn nullifier_tree() -> IndexedMerkleTree<Poseidon, usize> {
-    let modulus_minus_one =
-        BigUint::parse_bytes(BN254_MODULUS_DEC.as_bytes(), 10).expect("parse bn254 modulus") - 1u32;
-    IndexedMerkleTree::<Poseidon, usize>::new_with_next_value(
-        NULLIFIER_TREE_HEIGHT,
-        0,
-        modulus_minus_one,
-    )
-    .expect("nullifier tree")
-}
-
 fn build_spend_proofs(
     tree: &Pubkey,
     state_tree: &MerkleTree<Poseidon>,
@@ -666,23 +654,7 @@ fn fixed_keypair(seed: u8) -> Keypair {
 
 /// The shielded keypair of a Solana fee payer: one ed25519 identity.
 fn keypair_from_payer(payer: &Keypair) -> ShieldedKeypair {
-    let seed: [u8; 32] = payer.to_bytes()[..32]
-        .try_into()
-        .expect("ed25519 seed is the first 32 bytes");
-    ShieldedKeypair::from_keypair(SigningKey::from_ed25519_bytes(&seed))
-        .expect("keypair from payer")
-}
-
-/// Start the shared prover using the configured keys directory.
-fn start_prover() {
-    if env::var_os("ZOLANA_PROVER_KEYS_DIR").is_none() {
-        let home = env::var("HOME").expect("HOME is set");
-        env::set_var(
-            "ZOLANA_PROVER_KEYS_DIR",
-            Path::new(&home).join(".config/zolana/proving-keys"),
-        );
-    }
-    spr_client::spawn_prover().expect("spawn prover");
+    ShieldedKeypair::from_keypair(payer).expect("keypair from payer")
 }
 
 /// The release shielded pool program: `SHIELDED_POOL_PROGRAM_PATH`, else

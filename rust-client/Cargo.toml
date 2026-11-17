@@ -4,31 +4,27 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
-# The Zolana crates are Git revs pinned to zolana_revision in
-# test-utils/zolana-release.sh, the SDK commit of the pinned release; no
-# crates.io release matches the deployed programs yet. Solana crates match the
-# versions the SDK builds against.
+# Use the published SDK.
 [dependencies]
 anyhow = "1.0"
 dotenvy = "0.15"
-solana-address = { version = "2.6", features = ["atomic", "borsh", "bytemuck", "copy", "decode", "wincode"] }
+solana-address = { version = "2.7", features = ["atomic", "borsh", "bytemuck", "copy", "decode", "wincode"] }
 solana-keypair = "3.1.2"
 solana-signature = "3.4"
 solana-signer = "3.0"
 solana-system-interface = { version = "3.2", features = ["bincode"] }
 shellexpand = "3"
 spl-token-interface = "3.0.0"
-spr-client = { git = "https://github.com/helius-labs/zolana", rev = "ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08", features = ["solana-rpc"] }
-spr-interface = { git = "https://github.com/helius-labs/zolana", rev = "ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08" }
-spr-keypair = { git = "https://github.com/helius-labs/zolana", rev = "ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08" }
-spr-program = { git = "https://github.com/helius-labs/zolana", rev = "ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08" }
-spr-test-utils = { git = "https://github.com/helius-labs/zolana", rev = "ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08" }
-spr-transaction = { git = "https://github.com/helius-labs/zolana", rev = "ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08" }
-spr-user-registry-interface = { git = "https://github.com/helius-labs/zolana", rev = "ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08", features = ["solana"] }
+spr-client = { version = "0.10.0", features = ["solana-rpc"] }
+spr-interface = { version = "0.10.0" }
+spr-keypair = { version = "0.10.0" }
+spr-program = { version = "0.10.0" }
+spr-transaction = { version = "0.10.0" }
+spr-user-registry-interface = { version = "0.10.0", features = ["solana"] }
 url = "2"
 
 [dev-dependencies]
-spr-program-test = { git = "https://github.com/helius-labs/zolana", rev = "ca4cf4f6f0c83c0b225342e4bc6f16b3da83eb08", features = ["localnet"] }
+spr-program-test = { version = "0.10.0", features = ["localnet"] }
 
 [[example]]
 name = "register_private_wallet"

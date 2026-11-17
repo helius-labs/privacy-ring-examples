@@ -88,12 +88,10 @@ pub fn invalid_bump(maker: [u8; 32]) -> u8 {
         .expect("some bump derives an on-curve point")
 }
 
+pub use crate::mollusk::expect_err_exact;
+
 pub fn setup_mollusk() -> (Mollusk, Pubkey) {
-    spr_test_utils::mollusk::mollusk_with_program(
-        SBF_DIR,
-        *swap_program::ID.as_array(),
-        "swap_program",
-    )
+    crate::mollusk::mollusk_with_program(SBF_DIR, *swap_program::ID.as_array(), "swap_program")
 }
 
 pub fn account(lamports: u64) -> Account {
