@@ -6,7 +6,9 @@ import {
 import {
   LocalKeys,
   atSlot,
+  type ProofService,
 } from "@heliuslabs/spr/client";
+import { pathToFileURL } from "node:url";
 import {
   depositInstruction,
   transactInstruction,
@@ -31,12 +33,24 @@ const DEPOSIT_AMOUNT = 10_000_000n;
 const TRANSFER_AMOUNT = 3_000_000n;
 const WITHDRAW_AMOUNT = 3_000_000n;
 
-async function main(): Promise<void> {
+export async function runDepositTransferWithdraw(
+  options: {
+    readonly proofService?: ProofService;
+    readonly fetch?: typeof fetch;
+  } = {},
+): Promise<void> {
   const { clientConfig } = await setup();
 
-  // Connect to Helius RPC, which also serves the Photon indexer and prover.
-  const client =
-    await createSprClient(clientConfig);
+  // Read Solana and Photon through the client; LocalKeys chooses the proof service.
+  const client = await createSprClient({
+    ...clientConfig,
+    ...(options.proofService
+      ? { proofDataSource: "client" }
+      : {}),
+    ...(options.fetch
+      ? { fetch: options.fetch }
+      : {}),
+  });
 
   // Initialize the sender's private wallet and local authority
   // to decrypt transactions and sync balances.
@@ -49,7 +63,7 @@ async function main(): Promise<void> {
   const senderAddress = sender.shieldedAddress();
   const senderKeys = LocalKeys.fromKeypair(
     sender,
-    client.proofService,
+    options.proofService ?? client.proofService,
   );
 
   // The SDK hands back instructions; the app owns signing and sending.
@@ -151,7 +165,7 @@ async function main(): Promise<void> {
     assets,
   );
 
-  // 4. Fetch the ZK proof to prove the sender can spend the balance without revealing asset and amount.
+  // 4. Prove the sender can spend the balance without revealing asset and amount.
   const transferData = await client.proveTransact(
     transferProofInputs,
     senderKeys,
@@ -238,7 +252,7 @@ async function main(): Promise<void> {
     assets,
   );
 
-  // 4. Fetch the ZK proof to prove the sender can spend the balance.
+  // 4. Prove the sender can spend the balance.
   const withdrawalData =
     await client.proveTransact(
       withdrawalProofInputs,
@@ -306,4 +320,10 @@ async function main(): Promise<void> {
   );
 }
 
-await main();
+if (
+  process.argv[1] &&
+  import.meta.url ===
+    pathToFileURL(process.argv[1]).href
+) {
+  await runDepositTransferWithdraw();
+}

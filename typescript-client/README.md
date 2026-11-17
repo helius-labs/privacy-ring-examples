@@ -4,21 +4,30 @@ TypeScript client examples for `@heliuslabs/spr`.
 
 - **[register_private_wallet](examples/register_private_wallet.ts)** - Register a private wallet
 - **[deposit_transfer_withdraw](examples/deposit_transfer_withdraw.ts)** - Deposit, private transfer, and withdraw
+- **[local_proving](examples/local_proving.ts)** - The same flow with SPP proofs generated in Node by WASM
 - **[deposit_with_interface_setup](examples/deposit_with_interface_setup.ts)** - Create a token interface and deposit in one transaction
 - **[sync_balance](examples/sync_balance.ts)** - Read the private SOL and SPL balances
 - **[read_history](examples/read_history.ts)** - Read the private transaction history
 
 ## Setup
 
-Install Node.js 24+ and pnpm. The SDK is pinned to the published npm release
+Install Node.js 24+, pnpm 11.18.0, and Rust through rustup. The SDK is pinned to the published npm release
 `@heliuslabs/spr@0.9.0-alpha`. It predates two changes in the deployed 1.0
 programs that these examples do not use: the per-tree fee defaults of
 `createTreeInstructions` (#533) and the user-registry `update_keys` data of
 `buildKeyUpdateTransaction` (#591).
 
 ```bash
+bash ../test-utils/setup-ts-local-prover.sh
 pnpm install
 ```
+
+`@heliuslabs/zopro-spr` is pinned to a Git commit and the
+`zopro/packages/spr-prover` subdirectory of `helius-labs/zk-tools`. pnpm builds
+its single and multithreaded WASM runtimes during installation. The setup script
+installs the required `nightly-2025-11-15` Rust toolchain, its WASM target and
+`rust-src`, and `wasm-bindgen-cli` 0.2.128. The exact Git artifact is allowed to
+run its build script in `pnpm-workspace.yaml`.
 
 **Devnet:**
 
@@ -75,6 +84,40 @@ pnpm example examples/read_history.ts
 ```
 
 `deposit_with_interface_setup` prepares a fresh test token, then checks that its interface PDA is absent. One transaction creates the mint registry PDA and token vault, then deposits into the sender's private balance. The sender pays transaction fees and account rent. The network must allow permissionless interface creation.
+
+## Prove locally in Node
+
+The local proving example uses the same `ProofService` input and output types
+as the SDK's server prover. `LocalKeys` sends complete typed inputs directly to
+the WASM prover. Solana RPC and Photon supply chain and Merkle data; no proof
+request leaves the process. The example configures
+`createLocalProofService` from `@heliuslabs/zopro-spr` and passes that service
+to the existing `LocalKeys` flow. Its integration test adds an HTTP proving
+guard and proof counter in `tests/support`, keeping those assertions out of
+the ordinary example.
+The example and its test harness preload `transfer_confidential_1_2.key`
+before client actions; preloading downloads, verifies and decodes the resident
+WASM key. The test checks that both actual proof requests have that shape.
+
+Start the local stack without its prover, fund the configured CLI wallet with
+localnet SOL, and run:
+
+```bash
+zolana dev start --skip-prover
+ZOLANA_ENDPOINT=http://127.0.0.1:8899 \
+ZOLANA_INDEXER_URL=http://127.0.0.1:8784 \
+pnpm example examples/local_proving.ts
+```
+
+Use `ZOLANA_LOCAL_PROVING_THREADS=0` for single-threaded proving, or set it to a
+pool size from 1 to 64. This example selects four threads by default.
+
+The shared package owns its trusted production key catalog, shape selection,
+checksum verification, downloads, cache, serialized key switching and cleanup.
+Its catalog matches the SDK's compiled deployment pins and the CLI v0.10.0
+deployment. The first proof downloads the key for its circuit and shape; later
+calls reuse it. `ZOLANA_LOCAL_PROVING_KEYS_DIR` is passed as the package's optional
+`keyDirectory` setting; leave it unset to use the package's default cache.
 
 ## Documentation
 
