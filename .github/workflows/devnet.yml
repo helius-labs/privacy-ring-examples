@@ -77,7 +77,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: typescript-client/pnpm-lock.yaml
 
-      - name: Build the pinned spr-prover package
+      - name: Install local prover build tools
         run: bash test-utils/setup-ts-local-prover.sh
 
       - name: Install TypeScript client dependencies

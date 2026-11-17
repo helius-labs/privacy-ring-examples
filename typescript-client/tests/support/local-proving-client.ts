@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { SprNodeProver, shapeByLabel } from "@heliuslabs/spr-web-prover/node";
-
-import { localProofService } from "../../src/local-proof-service.js";
+import { createLocalProofService } from "@heliuslabs/spr-web-prover/sdk";
 
 import { runDepositTransferWithdraw } from "../../examples/deposit_transfer_withdraw.js";
 import { countProofs, fetchWithoutProver } from "./local-proving.js";
@@ -12,7 +11,7 @@ const prover = new SprNodeProver({
   gpu: "off",
   fetch: fetchWithoutProver,
 });
-const counted = countProofs(localProofService(prover), [1, 2]);
+const counted = countProofs(createLocalProofService(prover), [1, 2]);
 try {
   await prover.ensureKey(shapeByLabel("1x2"));
   await runDepositTransferWithdraw({

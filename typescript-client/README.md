@@ -22,14 +22,11 @@ bash ../test-utils/setup-ts-local-prover.sh
 pnpm install
 ```
 
-`spr-prover.lock.json` pins zk-tools PR #12 at commit
-`3104adbb6c320c849ffe217742b4905298449519`. The setup script checks out that
-source into `target/spr-prover-source`, builds `@heliuslabs/spr-web-prover`
-from `clients/spr-prover`, then pnpm installs the built package as a local
-`file:` dependency. No unpublished npm version or install-time build hook is
-required. The package's own `runtime.lock.json` independently pins its WASM
-runtime. Setup installs that runtime's Rust toolchain and wasm-bindgen version.
-Rerun setup before installing after changing the source pin.
+`@heliuslabs/spr-web-prover` is pinned to a Git commit and the
+`clients/spr-prover/packages/web-prover` subdirectory of zk-tools PR #12.
+Its prepack hook builds the package and pinned WASM runtimes during pnpm
+installation. The setup script installs the required Rust/WASM build tools;
+`pnpm-workspace.yaml` allows only the pinned Git artifact's build hook.
 
 **Devnet:**
 
@@ -90,13 +87,12 @@ pnpm example examples/read_history.ts
 ## Prove locally in Node
 
 The example creates `SprNodeProver` from `@heliuslabs/spr-web-prover/node` and
-passes `localProofService(prover)` to `LocalKeys`. No prover URL or fetch
-interceptor is needed. The SDK gathers proof data from Photon
+passes `createLocalProofService(prover)` from the package’s `/sdk` entry to
+`LocalKeys`. No prover URL or fetch interceptor is needed. The SDK gathers proof data from Photon
 (`proofDataSource: "client"`); WASM generates and verifies the proof in Node
 worker threads. Solana RPC and indexer requests still use the network.
 
-`src/local-proof-service.ts` adapts the pinned SDK's typed inputs to
-`proveRequest()`, using SDK serialization, proof/key-digest validation and
+The package owns typed input serialization, proof/key-digest validation and
 cancellation/deadline handling. The transaction example only configures the
 service. Its remote-proving path remains available with the default options.
 
@@ -128,10 +124,6 @@ Run the real-proof smoke test without a validator or Photon:
 ```bash
 pnpm test:local
 ```
-
-The test scripts use `--test-isolation=none` so Node does not copy its test-child
-V8 flags into the prover’s worker threads. The prover isolates its own work in
-workers; the localnet runner also gives the validator and Photon separate ports.
 
 It uses a synthetic request fixture from the same pinned zk-tools commit,
 checks the pinned release's source-key digest and fresh proof randomization, and verifies

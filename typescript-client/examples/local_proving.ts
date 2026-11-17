@@ -2,8 +2,7 @@ import {
   SprNodeProver,
   shapeByLabel,
 } from "@heliuslabs/spr-web-prover/node";
-
-import { localProofService } from "../src/local-proof-service.js";
+import { createLocalProofService } from "@heliuslabs/spr-web-prover/sdk";
 
 import { runDepositTransferWithdraw } from "./deposit_transfer_withdraw.js";
 
@@ -19,7 +18,7 @@ const prover = new SprNodeProver({
 try {
   await prover.ensureKey(shapeByLabel("1x2"));
   await runDepositTransferWithdraw({
-    proofService: localProofService(prover),
+    proofService: createLocalProofService(prover),
   });
 } finally {
   prover.terminate();

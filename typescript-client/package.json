@@ -6,12 +6,12 @@
   "scripts": {
     "check": "oxfmt --check . && tsc --noEmit",
     "example": "tsx",
-    "test:xark-local": "node --import tsx --test --test-isolation=none tests/xark_escrow_local_proving.ts",
-    "test:local": "node --import tsx --test --test-isolation=none tests/local_proving.test.ts"
+    "test:xark-local": "tsx --test tests/xark_escrow_local_proving.ts",
+    "test:local": "tsx --test tests/local_proving.test.ts"
   },
   "dependencies": {
     "@heliuslabs/spr": "0.9.0-alpha",
-    "@heliuslabs/spr-web-prover": "file:../target/spr-prover-source/clients/spr-prover/packages/web-prover",
+    "@heliuslabs/spr-web-prover": "github:helius-labs/zk-tools#1e43f9d11d8f925e122eb30e6d5f0cc079f3d7af&path:/clients/spr-prover/packages/web-prover",
     "@solana-program/system": "0.14.1",
     "@solana-program/token": "0.16.1",
     "@solana/kit": "^8.3.0",

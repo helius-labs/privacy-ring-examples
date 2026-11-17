@@ -42,8 +42,7 @@ import {
 } from "@heliuslabs/spr/program";
 import { AssetRegistry, Utxo } from "@heliuslabs/spr/transaction";
 import { SprNodeProver, shapeByLabel } from "@heliuslabs/spr-web-prover/node";
-
-import { localProofService } from "../src/local-proof-service.js";
+import { createLocalProofService } from "@heliuslabs/spr-web-prover/sdk";
 
 import { sendAndConfirmFactory } from "../src/lib.js";
 import { countProofs, fetchWithoutProver } from "./support/local-proving.js";
@@ -240,7 +239,7 @@ test(
     });
     t.after(() => local.terminate());
     await local.ensureKey(shapeByLabel("1x2"));
-    const counted = countProofs(localProofService(local), [1, 2]);
+    const counted = countProofs(createLocalProofService(local), [1, 2]);
 
     const cli =
       process.env["ZOLANA_CLI_BIN"] ?? resolve(xarkRoot, ".tools/bin/zolana");
@@ -303,39 +302,8 @@ test(
       proofDataSource: "client",
       fetch: fetchWithoutProver,
     });
-    let adapterChecked = false;
     const proofService: ProofService = {
       async prove(inputs, context) {
-        if (!adapterChecked) {
-          let calls = 0;
-          const refused = localProofService({
-            async proveRequest() {
-              calls++;
-              return {
-                proof: JSON.stringify({ provingKeySha256: "ff".repeat(32) }),
-                proveMs: 0,
-                verifyMs: 0,
-              };
-            },
-          });
-          await assert.rejects(
-            refused.prove(inputs, { signal: AbortSignal.abort() }),
-            { code: "CLIENT_ABORTED" },
-          );
-          await assert.rejects(refused.prove(inputs, { timeoutMs: 0 }), {
-            code: "CLIENT_INVALID_CONTEXT",
-          });
-          assert.equal(
-            calls,
-            0,
-            "invalid or cancelled contexts never reach the worker",
-          );
-          await assert.rejects(refused.prove(inputs), {
-            code: "CLIENT_PROVING_KEY_MISMATCH",
-          });
-          assert.equal(calls, 1);
-          adapterChecked = true;
-        }
         const first = await counted.prove(inputs, context);
         const second = await counted.prove(inputs, context);
         for (const point of ["a", "b", "c"] as const) {

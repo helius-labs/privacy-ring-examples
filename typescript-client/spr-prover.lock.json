@@ -1,7 +1,0 @@
-{
-  "repository": "https://github.com/helius-labs/zk-tools.git",
-  "revision": "3104adbb6c320c849ffe217742b4905298449519",
-  "path": "clients/spr-prover",
-  "package": "@heliuslabs/spr-web-prover",
-  "version": "0.7.0-alpha"
-}
