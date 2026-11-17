@@ -195,7 +195,7 @@ cargo test --release --locked -p timelock-escrow-test --test escrow
 deposits 0.5 SOL, locks 0.3 SOL through the Xark escrow program, then withdraws
 the escrow back to its creator. Both custom program proofs run in the generated
 Xark Node WASM module. The SPP proofs run through the commit-pinned
-`@heliuslabs/spr-web-prover/node` worker through its SDK fetch interceptor; the test generates two
+`@heliuslabs/spr-web-prover/node` worker through a typed SDK `ProofService` adapter; the test generates two
 randomized proofs for each transaction, submits one, and checks the program's
 accepted state transition and final 0.5 SOL private balance.
 

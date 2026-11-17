@@ -23,7 +23,7 @@ pnpm install
 ```
 
 `spr-prover.lock.json` pins zk-tools PR #12 at commit
-`50587b98ed99648d0323ad4b8a4a83c5735895d2`. The setup script checks out that
+`3104adbb6c320c849ffe217742b4905298449519`. The setup script checks out that
 source into `target/spr-prover-source`, builds `@heliuslabs/spr-web-prover`
 from `clients/spr-prover`, then pnpm installs the built package as a local
 `file:` dependency. No unpublished npm version or install-time build hook is
@@ -90,17 +90,20 @@ pnpm example examples/read_history.ts
 ## Prove locally in Node
 
 The example creates `SprNodeProver` from `@heliuslabs/spr-web-prover/node` and
-passes `prover.createFetch()` to the SDK. A loopback prover URL identifies the
-intercepted routes; no server listens there. The SDK gathers proof data from
-Photon (`proofDataSource: "client"`); WASM generates and verifies the proof in
-Node worker threads. Solana RPC and indexer requests still use the network.
-The local client drops the remote TEE policy and uses the SDK's ordinary
-`client.proofService` and `LocalKeys` integration.
+passes `localProofService(prover)` to `LocalKeys`. No prover URL or fetch
+interceptor is needed. The SDK gathers proof data from Photon
+(`proofDataSource: "client"`); WASM generates and verifies the proof in Node
+worker threads. Solana RPC and indexer requests still use the network.
+
+`src/local-proof-service.ts` adapts the pinned SDK's typed inputs to
+`proveRequest()`, using SDK serialization, proof/key-digest validation and
+cancellation/deadline handling. The transaction example only configures the
+service. Its remote-proving path remains available with the default options.
 
 The example preloads `shapeByLabel("1x2")` before client actions. The test-only
-HTTP guard rejects any proof request that escapes the local interceptor, and
-the counter checks the exact 1x2 circuit requests. Key downloads, digest checks,
-disk caching, key switching and worker cleanup belong to the prover package.
+HTTP guard rejects network proof requests; a typed proof-service counter checks
+the exact 1x2 circuit requests. Key downloads, digest checks, disk caching,
+key switching and worker cleanup belong to the prover package.
 
 Start the local stack without its prover, fund the configured CLI wallet with
 localnet SOL, and run:

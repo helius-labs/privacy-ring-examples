@@ -4,19 +4,14 @@ import { test } from "node:test";
 
 import { SprNodeProver, shapeByLabel } from "@heliuslabs/spr-web-prover/node";
 
-import {
-  countLocalProofs,
-  fetchWithoutProver,
-} from "./support/local-proving.js";
+import { fetchWithoutProver } from "./support/local-proving.js";
 
 test(
-  "the packed Node prover answers SDK routes locally with randomized proofs",
+  "the Node prover generates randomized proofs without a routing URL",
   { timeout: 120_000 },
   async () => {
-    const proverUrl = "http://127.0.0.1:3001";
     const keyLoads: number[] = [];
     const prover = new SprNodeProver({
-      proverUrl,
       threads: 2,
       gpu: "off",
       cacheDir: process.env["ZOLANA_LOCAL_PROVING_CACHE_DIR"],
@@ -32,18 +27,10 @@ test(
         new URL("./fixtures/transfer-1x2.json", import.meta.url),
         "utf8",
       );
-      const counted = countLocalProofs(prover.createFetch());
-      const prove = async () => {
-        const response = await counted.fetch(
-          `${proverUrl}/prove/transfer_confidential_1_2`,
-          { method: "POST", body },
-        );
-        assert.equal(response.status, 200);
-        return response.json();
-      };
+      const prove = async () =>
+        JSON.parse((await prover.proveRequest(body)).proof);
       const first = await prove();
       const second = await prove();
-      assert.equal(counted.proofCount, 2);
       assert.equal(
         first.provingKeySha256,
         "c0b5c1a1081136911a6ad5496fb989ed26d85b09e983a4d5048cff96e0833d85",
@@ -58,7 +45,10 @@ test(
       );
       assert.throws(
         () =>
-          fetchWithoutProver(`${proverUrl}/prove`, { method: "POST", body }),
+          fetchWithoutProver("https://prover.example/prove", {
+            method: "POST",
+            body,
+          }),
         /Proof requests must use/,
       );
     } finally {
