@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "check": "oxfmt --check . && tsc --noEmit",
-    "example": "tsx"
+    "example": "tsx",
+    "test:xark-local": "tsx --test tests/xark_escrow_local_proving.ts"
   },
   "dependencies": {
     "@heliuslabs/spr": "0.9.0-alpha",
+    "@heliuslabs/zopro-spr": "github:helius-labs/zk-tools#67d5626f77ee553358fe6e98e989173636922dba&path:/zopro/packages/spr-prover",
     "@solana-program/system": "0.14.1",
     "@solana-program/token": "0.16.1",
     "@solana/kit": "^8.3.0",

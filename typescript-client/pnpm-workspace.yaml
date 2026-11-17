@@ -1,4 +1,5 @@
 allowBuilds:
   esbuild: true
+  "@heliuslabs/zopro-spr@https://codeload.github.com/helius-labs/zk-tools/tar.gz/67d5626f77ee553358fe6e98e989173636922dba#path:/zopro/packages/spr-prover": true
 minimumReleaseAgeExclude:
   - "@heliuslabs/spr"
