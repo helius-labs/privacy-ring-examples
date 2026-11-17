@@ -3,6 +3,8 @@ node_modules/
 .DS_Store
 rust-client/.env
 typescript-client/.env
+typescript-client/test-ledger/
+typescript-client/.surfpool/
 rust-client/BUGS.md
 rust-client/test-ledger/
 escrow/gnark/test/test-ledger/
