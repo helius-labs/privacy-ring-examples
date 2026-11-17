@@ -24,6 +24,9 @@ circuits = ["dep:borsh", "dep:xark", "spr-program/client"]
 # Enabled only while `zolana zk compile` discovers the programs, before the
 # generated verifiers exist.
 build-circuits = ["circuits", "spr-program/build"]
+wasm = ["circuits", "spr-program/wasm"]
+wasm-prover = ["wasm", "spr-program/wasm-prover"]
+wasm-verify = ["wasm", "spr-program/wasm-verify"]
 profile-program = ["light-program-profiler/profile-program"]
 
 [dependencies]
@@ -57,7 +60,4 @@ check-cfg = [
     'cfg(target_os, values("solana"))',
     # light-program-profiler's `#[profile]` checks this feature.
     'cfg(feature, values("profile-heap"))',
-    # The program derives gate their WASM bindings on this feature, which this
-    # example does not build.
-    'cfg(feature, values("wasm"))',
 ]

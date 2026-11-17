@@ -1,4 +1,5 @@
 allowBuilds:
   esbuild: true
+  "@heliuslabs/spr-web-prover@https://codeload.github.com/helius-labs/zk-tools/tar.gz/f3cb0eb933fe1cbb235d0458c2dadc6d2beefeec#path:/clients/spr-prover/packages/web-prover": true
 minimumReleaseAgeExclude:
   - "@heliuslabs/spr"

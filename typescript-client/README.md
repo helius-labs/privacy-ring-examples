@@ -4,21 +4,45 @@ TypeScript client examples for `@heliuslabs/spr`.
 
 - **[register_private_wallet](examples/register_private_wallet.ts)** - Register a private wallet
 - **[deposit_transfer_withdraw](examples/deposit_transfer_withdraw.ts)** - Deposit, private transfer, and withdraw
+- **[local_proving](examples/local_proving.ts)** - The same flow with SPP proofs generated in Node by WASM
 - **[deposit_with_interface_setup](examples/deposit_with_interface_setup.ts)** - Create a token interface and deposit in one transaction
 - **[sync_balance](examples/sync_balance.ts)** - Read the private SOL and SPL balances
 - **[read_history](examples/read_history.ts)** - Read the private transaction history
 
 ## Setup
 
-Install Node.js 24+ and pnpm. The SDK is pinned to the published npm release
-`@heliuslabs/spr@0.9.0-alpha`. It predates two changes in the deployed 1.0
-programs that these examples do not use: the per-tree fee defaults of
-`createTreeInstructions` (#533) and the user-registry `update_keys` data of
-`buildKeyUpdateTransaction` (#591).
+Install Git, Node.js 24+, pnpm 11.18.0, and [Rust through rustup](https://rustup.rs/).
+This is the source preview in [PR #61](https://github.com/helius-labs/privacy-ring-examples/pull/61).
+From a new terminal:
 
 ```bash
-pnpm install
+git clone https://github.com/helius-labs/privacy-ring-examples.git
+cd privacy-ring-examples
+git checkout 9e31528e37a41bce11065266d6afa8945aa3808e
+cd typescript-client
+bash ../test-utils/setup-ts-local-prover.sh
+pnpm install --frozen-lockfile
+pnpm test:local
 ```
+
+The smoke test generates and locally verifies two randomized proofs. It needs
+no wallet, API key, validator, indexer or prover server. The first install builds
+both WASM runtimes, and the first test downloads and decodes the public 1×2 key.
+Later runs reuse the disk cache.
+
+`@heliuslabs/spr-web-prover` is pinned to a Git commit and the
+`clients/spr-prover/packages/web-prover` subdirectory of zk-tools PR #12.
+Its prepack hook builds the package and pinned WASM runtimes during pnpm
+installation. The setup script installs the required Rust/WASM build tools;
+`pnpm-workspace.yaml` allows only the pinned Git artifact's build hook.
+The npm `0.7.0-alpha` prover release does not contain the `/node` and `/sdk`
+entries; keep the Git dependency until a new release is published. Published
+prover packages contain built WASM, so their consumers do not need Rust.
+
+The SDK is pinned to the published `@heliuslabs/spr@0.9.0-alpha`. It predates
+two changes in the deployed 1.0 programs that these examples do not use: the
+per-tree fee defaults of `createTreeInstructions` (#533) and the user-registry
+`update_keys` data of `buildKeyUpdateTransaction` (#591).
 
 **Devnet:**
 
@@ -51,6 +75,7 @@ base=https://github.com/helius-labs/zolana/releases/download/cli-v0.10.0
 curl -sSfLO "$base/$asset" -sSfLO "$base/SHA256SUMS"
 grep " $asset\$" SHA256SUMS | shasum -a 256 -c - # sha256sum -c - on Linux
 mkdir -p ~/.local/bin && install -m 755 "$asset" ~/.local/bin/zolana
+export PATH="$HOME/.local/bin:$PATH"
 zolana dev start
 ```
 
@@ -75,6 +100,78 @@ pnpm example examples/read_history.ts
 ```
 
 `deposit_with_interface_setup` prepares a fresh test token, then checks that its interface PDA is absent. One transaction creates the mint registry PDA and token vault, then deposits into the sender's private balance. The sender pays transaction fees and account rent. The network must allow permissionless interface creation.
+
+## Prove locally in Node
+
+**Experimental and unaudited: use localnet or devnet test funds only.**
+Complete **Setup** above first. For a localnet transaction, install the
+release CLI from **Localnet** above and the
+[Solana CLI](https://solana.com/docs/intro/installation) (`solana` and
+`solana-keygen`). If the stack is already running, stop it with
+`zolana dev start --stop` before starting it without a prover.
+
+The example creates `SprNodeProver` from `@heliuslabs/spr-web-prover/node` and
+passes `createLocalProofService(prover)` from the package’s `/sdk` entry to
+`LocalKeys`. No prover URL or fetch interceptor is needed. The SDK gathers proof data from Photon
+(`proofDataSource: "client"`); WASM generates and verifies the proof in Node
+worker threads. Solana RPC and indexer requests still use the network.
+
+The package owns typed input serialization, proof/key-digest validation and
+cancellation/deadline handling. The transaction example only configures the
+service. Its remote-proving path remains available with the default options.
+
+The example preloads `shapeByLabel("1x2")` before client actions. The test-only
+HTTP guard rejects network proof requests; a typed proof-service counter checks
+the exact 1x2 circuit requests. Key downloads, digest checks, disk caching,
+key switching and worker cleanup belong to the prover package.
+
+From `typescript-client`, start the local stack, create a fresh test wallet,
+fund it with localnet SOL, and run:
+
+```bash
+zolana dev start --skip-prover
+spr_payer_dir="$(mktemp -d)"
+export ZOLANA_PAYER_KEYPAIR="$spr_payer_dir/payer.json"
+solana-keygen new --no-bip39-passphrase --silent --outfile "$ZOLANA_PAYER_KEYPAIR"
+solana airdrop 2 "$(solana-keygen pubkey "$ZOLANA_PAYER_KEYPAIR")" \
+  --url http://127.0.0.1:8899
+ZOLANA_ENDPOINT=http://127.0.0.1:8899 \
+ZOLANA_INDEXER_URL=http://127.0.0.1:8784 \
+ZOLANA_PROVER_URL= \
+pnpm example examples/local_proving.ts
+```
+
+The flow deposits 0.01 SOL, transfers 0.003 SOL to a generated recipient, and
+withdraws 0.003 SOL. Success prints `withdraw private_balance=4000000` and a
+transaction signature; that balance is the sender's remaining 0.004 private
+SOL. Stop the stack with `zolana dev start --stop` when finished. The temporary
+wallet above is independent of your default Solana wallet.
+
+To use devnet instead, configure the **Devnet** API key above, fund a dedicated
+wallet with devnet SOL, and run `pnpm example examples/local_proving.ts` with
+`ZOLANA_PAYER_KEYPAIR` pointing to that wallet. Local proving still uses RPC and
+Photon, and the first key download needs network access.
+
+Use `ZOLANA_LOCAL_PROVING_THREADS=0` for single-threaded proving, or set it to a
+pool size from 1 to 64. This example selects four threads by default.
+
+The bundled key set matches SDK 0.9.0-alpha and the CLI v0.10.0 deployment.
+`ZOLANA_LOCAL_PROVING_CACHE_DIR` overrides `cacheDir` (by default
+`~/.cache/spr-prover`). CPU proving is selected with `gpu: "off"`; the Node
+package also supports optional WebGPU acceleration. Decoded keys take roughly
+three times the compressed download's disk space, and larger shapes require
+more RAM. The example always terminates its workers in `finally`.
+
+Run the real-proof smoke test without a validator or Photon:
+
+```bash
+pnpm test:local
+```
+
+It uses a synthetic request fixture from the same pinned zk-tools commit,
+checks the pinned release's source-key digest and fresh proof randomization, and verifies
+that both proofs reuse the preloaded key. The Xark escrow runner and its full
+localnet flow are documented in [escrow/README.md](../escrow/README.md).
 
 ## Documentation
 

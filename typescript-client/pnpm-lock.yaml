@@ -11,6 +11,9 @@ importers:
       '@heliuslabs/spr':
         specifier: 0.9.0-alpha
         version: 0.9.0-alpha(@solana/kit@8.3.0(typescript@7.0.2))(typescript@7.0.2)
+      '@heliuslabs/spr-web-prover':
+        specifier: github:helius-labs/zk-tools#f3cb0eb933fe1cbb235d0458c2dadc6d2beefeec&path:/clients/spr-prover/packages/web-prover
+        version: https://codeload.github.com/helius-labs/zk-tools/tar.gz/f3cb0eb933fe1cbb235d0458c2dadc6d2beefeec#path:/clients/spr-prover/packages/web-prover(@heliuslabs/spr@0.9.0-alpha(@solana/kit@8.3.0(typescript@7.0.2))(typescript@7.0.2))
       '@solana-program/system':
         specifier: 0.14.1
         version: 0.14.1(@solana/kit@8.3.0(typescript@7.0.2))
@@ -194,6 +197,20 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@heliuslabs/spr-web-prover@https://codeload.github.com/helius-labs/zk-tools/tar.gz/f3cb0eb933fe1cbb235d0458c2dadc6d2beefeec#path:/clients/spr-prover/packages/web-prover':
+    resolution: {gitHosted: true, integrity: sha512-v6t/5dJDLBGCA23OBp459Fmgt4vPJyWeRDIbRZHdIAinVYo9kGY7xWh7nnuzEgNDhS2ltqbwxZjaTDySCGURzw==, path: /clients/spr-prover/packages/web-prover, tarball: https://codeload.github.com/helius-labs/zk-tools/tar.gz/f3cb0eb933fe1cbb235d0458c2dadc6d2beefeec}
+    version: 0.7.0-alpha
+    engines: {node: '>=24'}
+    hasBin: true
+    peerDependencies:
+      '@heliuslabs/spr': 0.9.0-alpha
+      webgpu: ^0.6.2
+    peerDependenciesMeta:
+      '@heliuslabs/spr':
+        optional: true
+      webgpu:
+        optional: true
 
   '@heliuslabs/spr@0.9.0-alpha':
     resolution: {integrity: sha512-mQVsBnO+Fv/XDlGFAab+ic3Cx0m7nZRd7lRQSNHpR0EhCWZXwPg+2ZLOQkLIzgdum2WFVcWeM0nQqxP098H1Hg==}
@@ -1111,6 +1128,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.1':
     optional: true
+
+  '@heliuslabs/spr-web-prover@https://codeload.github.com/helius-labs/zk-tools/tar.gz/f3cb0eb933fe1cbb235d0458c2dadc6d2beefeec#path:/clients/spr-prover/packages/web-prover(@heliuslabs/spr@0.9.0-alpha(@solana/kit@8.3.0(typescript@7.0.2))(typescript@7.0.2))':
+    optionalDependencies:
+      '@heliuslabs/spr': 0.9.0-alpha(@solana/kit@8.3.0(typescript@7.0.2))(typescript@7.0.2)
 
   '@heliuslabs/spr@0.9.0-alpha(@solana/kit@8.3.0(typescript@7.0.2))(typescript@7.0.2)':
     dependencies:
