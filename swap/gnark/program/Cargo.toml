@@ -42,6 +42,11 @@ spr-program = { version = "0.10.0", features = ["cpi", "compression"] }
 
 [dev-dependencies]
 mollusk-svm = "0.16.4"
+# mollusk-svm 0.16 needs the agave 4.3 runtime but accepts ^4.3, and this
+# crate's lockfile is not committed, so hold the runtime at 4.3.
+solana-program-runtime = "~4.3.2"
+solana-svm = "~4.3.2"
+solana-svm-callback = "~4.3.2"
 solana-account = "4.3"
 solana-instruction = "3.4"
 solana-pubkey = { version = "4.2", features = ["curve25519"] }
