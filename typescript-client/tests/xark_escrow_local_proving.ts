@@ -41,12 +41,10 @@ import {
   type ProgramWalletUtxo,
 } from "@heliuslabs/spr/program";
 import { AssetRegistry, Utxo } from "@heliuslabs/spr/transaction";
+import { createLocalProofService } from "@heliuslabs/zopro-spr";
 
 import { sendAndConfirmFactory } from "../src/lib.js";
-import {
-  createLocalProofService,
-  fetchWithoutProver,
-} from "../src/local-prover.js";
+import { countProofs, fetchWithoutProver } from "./support/local-proving.js";
 
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -69,6 +67,21 @@ interface PreparedApplicationTransaction {
   readonly publicHash: Uint8Array;
 }
 
+interface ProgramProver {
+  prove(inputs: Readonly<Record<string, string>>, options: object): ProofBundle;
+  free(): void;
+}
+
+interface ProgramVerifier {
+  verify(proof: Uint8Array, publicInputs: Uint8Array): boolean;
+  free(): void;
+}
+
+interface LoadedProgramCircuit {
+  readonly prover: ProgramProver;
+  readonly verifier: ProgramVerifier;
+}
+
 // The generated .d.ts lives beside build artifacts. This narrow boundary lets
 // the ordinary client typecheck run before the optional Xark package is built.
 interface EscrowRuntime {
@@ -83,13 +96,11 @@ interface EscrowRuntime {
     payer: string,
   ): PreparedApplicationTransaction;
   escrowTermsDataUtxo(utxo: ProgramWalletUtxo): { data: unknown };
-  proveStreaming(
+  readonly ProvingSession: new (
     circuit: Uint8Array,
     key: Uint8Array,
-    inputs: Readonly<Record<string, string>>,
-    options: object,
-  ): ProofBundle;
-  verify(key: Uint8Array, proof: Uint8Array, publicInputs: Uint8Array): boolean;
+  ) => ProgramProver;
+  readonly VerifyingKey: new (key: Uint8Array) => ProgramVerifier;
   programProof(
     proof: Uint8Array,
     publicInputs: Uint8Array,
@@ -122,23 +133,42 @@ async function checkedArtifact(
   return bytes;
 }
 
-async function programProof(
+async function loadProgramCircuit(
   app: EscrowRuntime,
   circuit: "escrow" | "withdraw",
-  inputs: Readonly<Record<string, string>>,
-  publicHash: Uint8Array,
-): Promise<Uint8Array> {
-  const [bytecode, key, verifier] = await Promise.all([
+): Promise<LoadedProgramCircuit> {
+  const [bytecode, key, verifyingKey] = await Promise.all([
     checkedArtifact(circuit, "circuit.xbc"),
     checkedArtifact(circuit, "pk.bin"),
     checkedArtifact(circuit, "vk.bin"),
   ]);
-  const first = app.proveStreaming(bytecode, key, inputs, {});
+  const verifier = new app.VerifyingKey(verifyingKey);
+  try {
+    return { prover: new app.ProvingSession(bytecode, key), verifier };
+  } catch (error) {
+    verifier.free();
+    throw error;
+  }
+}
+
+function programProof(
+  app: EscrowRuntime,
+  circuit: LoadedProgramCircuit,
+  inputs: Readonly<Record<string, string>>,
+  publicHash: Uint8Array,
+): Uint8Array {
+  const first = circuit.prover.prove(inputs, {});
   let second: ProofBundle | undefined;
   try {
-    second = app.proveStreaming(bytecode, key, inputs, {});
-    assert.equal(app.verify(verifier, first.proof, first.publicInputs), true);
-    assert.equal(app.verify(verifier, second.proof, second.publicInputs), true);
+    second = circuit.prover.prove(inputs, {});
+    assert.equal(
+      circuit.verifier.verify(first.proof, first.publicInputs),
+      true,
+    );
+    assert.equal(
+      circuit.verifier.verify(second.proof, second.publicInputs),
+      true,
+    );
     assert.deepEqual(first.publicInputs, second.publicInputs);
     app.programProof(first.proof, first.publicInputs, publicHash);
     const proof = app.compressedProgramProof(first.proof);
@@ -189,6 +219,25 @@ test(
   "Xark escrow and withdraw use local TypeScript SPP proofs",
   { timeout: 300_000 },
   async (t) => {
+    const app = applicationRuntime();
+    const escrowCircuit = await loadProgramCircuit(app, "escrow");
+    t.after(() => {
+      escrowCircuit.prover.free();
+      escrowCircuit.verifier.free();
+    });
+    const withdrawCircuit = await loadProgramCircuit(app, "withdraw");
+    t.after(() => {
+      withdrawCircuit.prover.free();
+      withdrawCircuit.verifier.free();
+    });
+    const local = await createLocalProofService({
+      threads: Number(process.env["ZOLANA_LOCAL_PROVING_THREADS"] ?? 4),
+      keyDirectory: process.env["ZOLANA_LOCAL_PROVING_KEYS_DIR"],
+    });
+    t.after(() => local.close());
+    await local.preload("transfer_confidential_1_2.key");
+    const counted = countProofs(local, [1, 2]);
+
     const cli =
       process.env["ZOLANA_CLI_BIN"] ?? resolve(xarkRoot, ".tools/bin/zolana");
     const rpcPort = Number(process.env["ZOLANA_XARK_RPC_PORT"] ?? "18599");
@@ -251,12 +300,10 @@ test(
       proofDataSource: "client",
       fetch: fetchWithoutProver,
     });
-    const local = await createLocalProofService();
-    t.after(() => local.close());
     const proofService: ProofService = {
       async prove(inputs, context) {
-        const first = await local.prove(inputs, context);
-        const second = await local.prove(inputs, context);
+        const first = await counted.prove(inputs, context);
+        const second = await counted.prove(inputs, context);
         for (const point of ["a", "b", "c"] as const) {
           assert.notDeepEqual(
             first[point],
@@ -266,7 +313,7 @@ test(
         }
         return first;
       },
-      proveMerge: (inputs, context) => local.proveMerge(inputs, context),
+      proveMerge: (inputs, context) => counted.proveMerge(inputs, context),
     };
     const signingKey = SigningKey.generate();
     const creator = ShieldedKeypair.fromKeypair(signingKey);
@@ -324,7 +371,6 @@ test(
     escrowViewingKey.destroy();
     escrowNullifierKey.destroy();
     t.after(() => escrowKeys.destroy());
-    const app = applicationRuntime();
     const asProgramUtxo = (
       utxo: Parameters<typeof toProgramWalletUtxo>[0],
       nullifierPublicKey = creator.nullifierPublicKey(),
@@ -378,14 +424,14 @@ test(
       escrow.transaction.encryptWithKeys(creator),
       creatorKeys,
     );
-    assert.equal(local.proofCount, 2);
+    assert.equal(counted.proofCount, 2);
     assert.deepEqual(
       sppEscrow.privateTxHash,
       escrow.transaction.paddingIndependentPrivateTxHash,
     );
-    const escrowProof = await programProof(
+    const escrowProof = programProof(
       app,
-      "escrow",
+      escrowCircuit,
       escrow.proofInputs,
       escrow.publicHash,
     );
@@ -482,14 +528,14 @@ test(
       withdraw.transaction.encryptWithKeys(creator),
       escrowKeys,
     );
-    assert.equal(local.proofCount, 4);
+    assert.equal(counted.proofCount, 4);
     assert.deepEqual(
       sppWithdraw.privateTxHash,
       withdraw.transaction.paddingIndependentPrivateTxHash,
     );
-    const withdrawProof = await programProof(
+    const withdrawProof = programProof(
       app,
-      "withdraw",
+      withdrawCircuit,
       withdraw.proofInputs,
       withdraw.publicHash,
     );
@@ -542,27 +588,28 @@ test(
       seed.fill(0);
     }
     try {
-      const example = await exec(
-        process.execPath,
-        [
-          "--import",
-          "tsx",
-          resolve(root, "typescript-client/examples/local_proving.ts"),
-        ],
-        {
-          cwd: resolve(root, "typescript-client"),
-          timeout: 120_000,
-          env: {
-            ...process.env,
-            ZOLANA_ENDPOINT: `http://127.0.0.1:${rpcPort}`,
-            ZOLANA_INDEXER_URL: `http://127.0.0.1:${photonPort}`,
-            ZOLANA_PROVER_URL: `http://127.0.0.1:${proverPort}`,
-            ZOLANA_PROOF_DATA_SOURCE: "client",
-            ZOLANA_PAYER_KEYPAIR: payerFile,
+      const runClient = (entry: string) =>
+        exec(
+          process.execPath,
+          ["--import", "tsx", resolve(root, "typescript-client", entry)],
+          {
+            cwd: resolve(root, "typescript-client"),
+            timeout: 120_000,
+            env: {
+              ...process.env,
+              ZOLANA_ENDPOINT: `http://127.0.0.1:${rpcPort}`,
+              ZOLANA_INDEXER_URL: `http://127.0.0.1:${photonPort}`,
+              ZOLANA_PROVER_URL: `http://127.0.0.1:${proverPort}`,
+              ZOLANA_PROOF_DATA_SOURCE: "client",
+              ZOLANA_PAYER_KEYPAIR: payerFile,
+            },
           },
-        },
-      );
-      assert.match(example.stdout, /local_proving proofs=2/u);
+        );
+      const normal = await runClient("examples/local_proving.ts");
+      // The CLI reports the change from its own new deposit, not all prior funds.
+      assert.match(normal.stdout, /withdraw private_balance=4000000\b/u);
+      const checked = await runClient("tests/support/local-proving-client.ts");
+      assert.match(checked.stdout, /local_proving proofs=2/u);
     } finally {
       await rm(payerFile, { force: true });
     }

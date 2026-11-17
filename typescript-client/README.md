@@ -90,8 +90,14 @@ pnpm example examples/read_history.ts
 The local proving example uses the same `ProofService` input and output types
 as the SDK's server prover. `LocalKeys` sends complete typed inputs directly to
 the WASM prover. Solana RPC and Photon supply chain and Merkle data; no proof
-request leaves the process. The example refuses HTTP `/prove` routes and checks
-that both the transfer and withdrawal generated local SPP proofs.
+request leaves the process. The example configures
+`createLocalProofService` from `@heliuslabs/zopro-spr` and passes that service
+to the existing `LocalKeys` flow. Its integration test adds an HTTP proving
+guard and proof counter in `tests/support`, keeping those assertions out of
+the ordinary example.
+The example and its test harness preload `transfer_confidential_1_2.key`
+before client actions; preloading downloads, verifies and decodes the resident
+WASM key. The test checks that both actual proof requests have that shape.
 
 Start the local stack without its prover, fund the configured CLI wallet with
 localnet SOL, and run:
@@ -104,16 +110,14 @@ pnpm example examples/local_proving.ts
 ```
 
 Use `ZOLANA_LOCAL_PROVING_THREADS=0` for single-threaded proving, or set it to a
-pool size from 1 to 64. The default is up to four available CPU threads.
+pool size from 1 to 64. This example selects four threads by default.
 
-The first proof downloads the required `.zopro` key. Its size, SHA-256 and source
-gnark key digest are checked against [`src/local-proving-keys.json`](src/local-proving-keys.json),
-the production `78751f5d1c591777` catalog pinned by the published
-[`@heliuslabs/spr-web-prover@0.7.0-alpha`](https://www.npmjs.com/package/@heliuslabs/spr-web-prover/v/0.7.0-alpha).
-Every source digest is also checked against the SDK's compiled deployment pins.
-Keys are cached in `~/.cache/zolana-examples/proving-keys/78751f5d1c591777`;
-`ZOLANA_LOCAL_PROVING_KEYS_DIR` overrides that directory. This is the key set used
-by the CLI v0.10.0 deployment.
+The shared package owns its trusted production key catalog, shape selection,
+checksum verification, downloads, cache, serialized key switching and cleanup.
+Its catalog matches the SDK's compiled deployment pins and the CLI v0.10.0
+deployment. The first proof downloads the key for its circuit and shape; later
+calls reuse it. `ZOLANA_LOCAL_PROVING_KEYS_DIR` is passed as the package's optional
+`keyDirectory` setting; leave it unset to use the package's default cache.
 
 ## Documentation
 

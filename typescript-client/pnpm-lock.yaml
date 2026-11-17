@@ -12,8 +12,8 @@ importers:
         specifier: 0.9.0-alpha
         version: 0.9.0-alpha(@solana/kit@8.3.0(typescript@7.0.2))(typescript@7.0.2)
       '@heliuslabs/zopro-spr':
-        specifier: github:helius-labs/zk-tools#67d5626f77ee553358fe6e98e989173636922dba&path:/zopro/packages/spr-prover
-        version: https://codeload.github.com/helius-labs/zk-tools/tar.gz/67d5626f77ee553358fe6e98e989173636922dba#path:/zopro/packages/spr-prover(@heliuslabs/spr@0.9.0-alpha(@solana/kit@8.3.0(typescript@7.0.2))(typescript@7.0.2))
+        specifier: github:helius-labs/zk-tools#d598a9cb9c94e6c82cc717048fe63b2e60bd7b99&path:/zopro/packages/spr-prover
+        version: https://codeload.github.com/helius-labs/zk-tools/tar.gz/d598a9cb9c94e6c82cc717048fe63b2e60bd7b99#path:/zopro/packages/spr-prover(@heliuslabs/spr@0.9.0-alpha(@solana/kit@8.3.0(typescript@7.0.2))(typescript@7.0.2))
       '@solana-program/system':
         specifier: 0.14.1
         version: 0.14.1(@solana/kit@8.3.0(typescript@7.0.2))
@@ -204,8 +204,8 @@ packages:
     peerDependencies:
       '@solana/kit': ^8.3.0
 
-  '@heliuslabs/zopro-spr@https://codeload.github.com/helius-labs/zk-tools/tar.gz/67d5626f77ee553358fe6e98e989173636922dba#path:/zopro/packages/spr-prover':
-    resolution: {gitHosted: true, integrity: sha512-6KnwxQCD9y3f9GBCMF6+fnLR/trKd3RJN7fznf3kp5uM/aN5SUAcnxlBWdoUDtLGfldfrBr73rSh/VpVJolPEw==, path: /zopro/packages/spr-prover, tarball: https://codeload.github.com/helius-labs/zk-tools/tar.gz/67d5626f77ee553358fe6e98e989173636922dba}
+  '@heliuslabs/zopro-spr@https://codeload.github.com/helius-labs/zk-tools/tar.gz/d598a9cb9c94e6c82cc717048fe63b2e60bd7b99#path:/zopro/packages/spr-prover':
+    resolution: {gitHosted: true, integrity: sha512-lV1vpQFIyTuqwCk8xqplTSjokjcbt0xpdNNu+bMOc4AGd5YJV/xQFlX38xVEA2vCeqxH+n7BjCkkPx0UcR26sQ==, path: /zopro/packages/spr-prover, tarball: https://codeload.github.com/helius-labs/zk-tools/tar.gz/d598a9cb9c94e6c82cc717048fe63b2e60bd7b99}
     version: 0.1.0
     engines: {node: '>=24'}
     peerDependencies:
@@ -1142,7 +1142,7 @@ snapshots:
       - encoding
       - typescript
 
-  '@heliuslabs/zopro-spr@https://codeload.github.com/helius-labs/zk-tools/tar.gz/67d5626f77ee553358fe6e98e989173636922dba#path:/zopro/packages/spr-prover(@heliuslabs/spr@0.9.0-alpha(@solana/kit@8.3.0(typescript@7.0.2))(typescript@7.0.2))':
+  '@heliuslabs/zopro-spr@https://codeload.github.com/helius-labs/zk-tools/tar.gz/d598a9cb9c94e6c82cc717048fe63b2e60bd7b99#path:/zopro/packages/spr-prover(@heliuslabs/spr@0.9.0-alpha(@solana/kit@8.3.0(typescript@7.0.2))(typescript@7.0.2))':
     dependencies:
       '@heliuslabs/spr': 0.9.0-alpha(@solana/kit@8.3.0(typescript@7.0.2))(typescript@7.0.2)
 

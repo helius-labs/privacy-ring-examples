@@ -201,9 +201,19 @@ accepted state transition and final 0.5 SOL private balance.
 
 The test owns an isolated validator and Photon stack started with
 `--skip-prover`. Its HTTP transport refuses prover routes, and its proof counter
-checks that all four SPP proofs were generated locally. No SPP prover server
-is started. It also runs the standalone TypeScript local-proving client example
-against the same stack.
+checks the four SPP proofs in the escrow flow were generated locally. No SPP prover server
+is started. It also runs the normal TypeScript local-proving CLI and its
+exported example flow against the same stack; the latter uses a test-only
+HTTP guard and checks the example's two local SPP proofs.
+The normal example imports the shared factory directly; key management lives
+in `@heliuslabs/zopro-spr`.
+
+Setup preloads and decodes the SPP `transfer_confidential_1_2.key`, and the test
+asserts that its transfer requests use that shape. It also creates separate
+Xark `ProvingSession` instances for escrow and withdrawal, loading their
+circuits and decoding their complete proving keys before any client actions.
+Their `VerifyingKey` instances are decoded in setup too. The proof steps use
+these resident objects rather than rereading artifacts or decoding keys.
 
 Run from `escrow/xark/`, with Node 24+, the SBF tools, and the standard Rust/WASM
 build prerequisites installed:

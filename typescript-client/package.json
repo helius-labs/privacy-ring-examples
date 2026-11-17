@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@heliuslabs/spr": "0.9.0-alpha",
-    "@heliuslabs/zopro-spr": "github:helius-labs/zk-tools#67d5626f77ee553358fe6e98e989173636922dba&path:/zopro/packages/spr-prover",
+    "@heliuslabs/zopro-spr": "github:helius-labs/zk-tools#d598a9cb9c94e6c82cc717048fe63b2e60bd7b99&path:/zopro/packages/spr-prover",
     "@solana-program/system": "0.14.1",
     "@solana-program/token": "0.16.1",
     "@solana/kit": "^8.3.0",
