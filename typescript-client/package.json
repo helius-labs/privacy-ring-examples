@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@heliuslabs/spr": "0.9.0-alpha",
-    "@heliuslabs/spr-web-prover": "github:helius-labs/zk-tools#1e43f9d11d8f925e122eb30e6d5f0cc079f3d7af&path:/clients/spr-prover/packages/web-prover",
+    "@heliuslabs/spr-web-prover": "github:helius-labs/zk-tools#f3cb0eb933fe1cbb235d0458c2dadc6d2beefeec&path:/clients/spr-prover/packages/web-prover",
     "@solana-program/system": "0.14.1",
     "@solana-program/token": "0.16.1",
     "@solana/kit": "^8.3.0",
