@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 
 import { createLocalProofService } from "@heliuslabs/zopro-spr";
 
-import { runLocalProving } from "../../examples/local_proving.js";
+import { runDepositTransferWithdraw } from "../../examples/deposit_transfer_withdraw.js";
 import { countProofs, fetchWithoutProver } from "./local-proving.js";
 
 const proofs = await createLocalProofService({
@@ -12,7 +12,10 @@ const proofs = await createLocalProofService({
 const counted = countProofs(proofs, [1, 2]);
 try {
   await proofs.preload("transfer_confidential_1_2.key");
-  await runLocalProving(counted, fetchWithoutProver);
+  await runDepositTransferWithdraw({
+    proofService: counted,
+    fetch: fetchWithoutProver,
+  });
   assert.equal(counted.proofCount, 2);
   console.log(`local_proving proofs=${counted.proofCount}`);
 } finally {

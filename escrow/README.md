@@ -203,7 +203,7 @@ The test owns an isolated validator and Photon stack started with
 `--skip-prover`. Its HTTP transport refuses prover routes, and its proof counter
 checks the four SPP proofs in the escrow flow were generated locally. No SPP prover server
 is started. It also runs the normal TypeScript local-proving CLI and its
-exported example flow against the same stack; the latter uses a test-only
+shared base flow against the same stack; the latter uses a test-only
 HTTP guard and checks the example's two local SPP proofs.
 The normal example imports the shared factory directly; key management lives
 in `@heliuslabs/zopro-spr`.
